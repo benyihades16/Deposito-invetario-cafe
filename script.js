@@ -812,8 +812,8 @@ function renderHistorial() {
   });
 }
 
-// Inicialización de Event Listeners
-document.addEventListener('DOMContentLoaded', () => {
+// Inicialización robusta compatible con ES Modules (corrección del evento DOMContentLoaded)
+function iniciarApp() {
   verificarSesion();
 
   const radioTabs = document.querySelectorAll('input[name="seccion"]');
@@ -843,4 +843,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnGuardarIngreso')?.addEventListener('click', confirmarIngresoStock);
   document.getElementById('btnAgregarABarra')?.addEventListener('click', agregarABarra);
   document.getElementById('btnConfirmarBarra')?.addEventListener('click', confirmarConsumoBarra);
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', iniciarApp);
+} else {
+  iniciarApp();
+}
