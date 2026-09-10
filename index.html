@@ -1,677 +1,355 @@
 <!DOCTYPE html>
-
 <html lang="es">
-
 <head>
-
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
 <title>Control de Depósito y Cafetería</title>
-
 <!-- Tailwind CSS CDN -->
-
 <script src="https://cdn.tailwindcss.com"></script>
-
 <style>
-
 .control-hidden { display: none; }
-
 #menuBackdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); z-index: 40; }
-
 #menu-toggle:checked ~ #menuBackdrop { display: block; }
-
 #menuLateral { position: fixed; top: 0; left: -100%; width: 280px; height: 100%; background-color: #0f172a; z-index: 50; transition: left 0.3s ease; flex-direction: column; justify-content: space-between; padding: 1.5rem; display: flex; }
-
 #menu-toggle:checked ~ #menuLateral { left: 0; }
 
-
 .seccion-vista { display: none; }
-
 #tab-stock:checked ~ main #sec-stock { display: block; }
-
 #tab-total:checked ~ main #sec-total { display: block; }
-
 #tab-transferencia:checked ~ main #sec-transferencia { display: block; }
-
 #tab-barra:checked ~ main #sec-barra { display: block; }
-
 #tab-ingreso:checked ~ main #sec-ingreso { display: block; }
-
 #tab-nuevo_prod:checked ~ main #sec-nuevo_prod { display: block; }
-
 #tab-historial:checked ~ main #sec-historial { display: block; }
-
 </style>
-
 </head>
-
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen pb-12">
 
-
-
 <!-- CONTROLES NATIVOS DE NAVEGACIÓN -->
-
 <input type="checkbox" id="menu-toggle" class="control-hidden">
-
 <input type="radio" name="seccion" id="tab-stock" class="control-hidden" checked>
-
 <input type="radio" name="seccion" id="tab-total" class="control-hidden">
-
 <input type="radio" name="seccion" id="tab-transferencia" class="control-hidden">
-
 <input type="radio" name="seccion" id="tab-barra" class="control-hidden">
-
 <input type="radio" name="seccion" id="tab-ingreso" class="control-hidden">
-
 <input type="radio" name="seccion" id="tab-nuevo_prod" class="control-hidden">
-
 <input type="radio" name="seccion" id="tab-historial" class="control-hidden">
 
-
-
 <!-- FONDO OSCURO MENÚ -->
-
 <label for="menu-toggle" id="menuBackdrop"></label>
 
-
-
 <!-- MENÚ LATERAL -->
-
 <aside id="menuLateral">
-
 <div>
-
 <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
-
 <div class="flex items-center space-x-2">
-
 <span class="text-2xl">📦</span>
-
 <span class="font-bold text-lg text-white">Menú Principal</span>
-
 </div>
-
 <label for="menu-toggle" class="text-slate-400 hover:text-white text-2xl p-2 cursor-pointer">✕</label>
-
 </div>
-
-
 
 <nav class="space-y-2">
-
 <label for="tab-stock" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
-
 <span>📊</span> Stock Depósito y Vitrina
-
 </label>
-
 <label for="tab-total" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
-
 <span>📈</span> Inventario Total
-
 </label>
-
 <label for="tab-transferencia" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
-
 <span>🔄</span> Traspaso a Cafetería
-
 </label>
-
 <label for="tab-barra" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
-
 <span>☕</span> Ventas & Barra (Cafetería)
-
 </label>
-
 <label for="tab-ingreso" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
-
 <span>📥</span> Ingreso de Mercadería
-
 </label>
-
 <label for="tab-nuevo_prod" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
-
 <span>🔒</span> Nuevo Producto (Admin)
-
 </label>
-
 <label for="tab-historial" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
-
 <span>📑</span> Historial de Movimientos
-
 </label>
-
 </nav>
-
 </div>
-
-
 
 <div class="border-t border-slate-800 pt-4 text-xs text-slate-500 text-center">
-
 Control de Depósito v6.0
-
 </div>
-
 </aside>
 
-
-
 <!-- ENCABEZADO -->
-
 <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-md">
-
 <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
-
 <div class="flex items-center space-x-3">
-
 <label for="menu-toggle" class="p-2.5 rounded-xl bg-slate-800 active:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center cursor-pointer">
-
 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-
 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path>
-
 </svg>
-
 </label>
 
-
-
 <div class="flex items-center space-x-2">
-
 <span class="text-xl">📦</span>
-
 <h1 id="tituloSeccion" class="font-bold text-base sm:text-lg text-indigo-400">Stock Depósito y Vitrina</h1>
-
 </div>
-
 </div>
-
 
 <!-- BADGE USUARIO Y BOTÓN DE CERRAR SESIÓN -->
-
 <div id="usuarioHeaderBadge"></div>
-
 </div>
-
 </header>
 
-
-
 <!-- CONTENIDO PRINCIPAL -->
-
 <main class="max-w-4xl mx-auto px-4 mt-5">
 
-
-
-<!-- 1. SECCIÓN: STOCK ACTUAL (DEPÓSITO Y CAFETERÍA) -->
-
+<!-- 1. SECCIÓN: STOCK ACTUAL (CAFETERÍA ARRIBA, DEPÓSITO ABAJO) -->
 <section id="sec-stock" class="seccion-vista space-y-5">
-
 <div class="grid grid-cols-2 gap-3">
-
 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
-
 <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Ítems Únicos</p>
-
 <p id="statTotalProductos" class="text-2xl font-extrabold text-indigo-600 mt-1">0</p>
-
 </div>
-
 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
-
 <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Movimientos Hoy</p>
-
 <p id="statTotalPases" class="text-2xl font-extrabold text-rose-600 mt-1">0</p>
-
 </div>
-
 </div>
-
-
 
 <!-- TABLA CAFETERÍA / VITRINA -->
-
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-
 <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-sky-50/50">
-
 <h2 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-
 <span>☕</span> Stock en Cafetería / Vitrina
-
 </h2>
-
 </div>
-
 <div class="overflow-x-auto">
-
 <table class="w-full text-left text-sm">
-
 <thead class="bg-slate-100 text-slate-500 text-xs uppercase border-b border-slate-200">
-
 <tr>
-
 <th class="py-3 px-3 font-semibold">Producto</th>
-
 <th class="py-3 px-3 text-center font-semibold">Stock Cafetería</th>
-
 </tr>
-
 </thead>
-
 <tbody id="tablaCafeteria" class="divide-y divide-slate-100"></tbody>
-
 </table>
-
+</div>
 </div>
 
-</div>
-
-
-  
 <!-- TABLA DEPÓSITO -->
-
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-
 <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-
 <h2 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-
 <span>🏭</span> Stock en Depósito
-
 </h2>
-
 </div>
-
 <div class="overflow-x-auto">
-
 <table class="w-full text-left text-sm">
-
 <thead class="bg-slate-100 text-slate-500 text-xs uppercase border-b border-slate-200">
-
 <tr>
-
 <th class="py-3 px-3 font-semibold">Producto</th>
-
 <th class="py-3 px-3 text-center font-semibold">Stock Depósito</th>
-
 <th class="py-3 px-3 text-center font-semibold thAdminAcciones hidden">Acción</th>
-
 </tr>
-
 </thead>
-
 <tbody id="tablaDeposito" class="divide-y divide-slate-100"></tbody>
-
 </table>
-
 </div>
-
 </div>
-
 </section>
-
-
 
 <!-- 2. SECCIÓN: INVENTARIO TOTAL CONSOLIDADO -->
-
 <section id="sec-total" class="seccion-vista space-y-5">
-
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-
 <div class="p-4 border-b border-slate-100 flex justify-between items-center">
-
 <h2 class="font-bold text-slate-900 text-base flex items-center gap-2">
-
 <span>📈</span> Inventario Total Consolidado
-
 </h2>
-
 </div>
-
 <div class="overflow-x-auto">
-
 <table class="w-full text-left text-sm">
-
 <thead class="bg-slate-50 text-slate-500 text-xs uppercase border-b border-slate-200">
-
 <tr>
-
 <th class="py-3 px-3 font-semibold">Producto</th>
-
 <th class="py-3 px-3 text-center font-semibold">Depósito</th>
-
 <th class="py-3 px-3 text-center font-semibold">Cafetería</th>
-
 <th class="py-3 px-3 text-right font-semibold">Total General</th>
-
 </tr>
-
 </thead>
-
 <tbody id="tablaTotal" class="divide-y divide-slate-100"></tbody>
-
 </table>
-
 </div>
-
 </div>
-
 </section>
 
-<!-- 3. SECCIÓN: TRASPASO (DEPÓSITO -> CAFETERÍA) -->
-
+<!-- 3. SECCIÓN: TRASPASO (DEPÓSITO -> CAFETERÍA) MÚLTIPLE -->
 <section id="sec-transferencia" class="seccion-vista">
-
-<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-
-<div class="border-b border-slate-100 pb-3">
-
-<h2 class="text-base font-bold text-indigo-600 flex items-center gap-2">
-
-<span>🔄</span> Traspaso (Depósito ➔ Cafetería)
-
-</h2>
-
-<p class="text-xs text-slate-500 mt-0.5">Mueve insumos desde el depósito hacia la barra/vitrina</p>
-
-</div>
-
-
-
-<div class="space-y-3">
-
-<div>
-
-<label class="block text-xs font-medium text-slate-700 mb-1">Seleccionar Producto</label>
-
-<select id="selectProductoTraspaso" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none"></select>
-
-</div>
-
-<div>
-
-<label class="block text-xs font-medium text-slate-700 mb-1">Cantidad a Traspasar</label>
-
-<input type="number" id="cantTraspaso" min="1" value="1" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
-
-</div>
-
-<button type="button" id="btnEjecutarTraspaso" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition text-sm shadow active:scale-95">
-
-🚀 Confirmar Traspaso
-
-</button>
-
-</div>
-
-</div>
-
-</section>
-
-
-
-<!-- 4. SECCIÓN: VENTAS & BARRA -->
-
-<section id="sec-barra" class="seccion-vista">
-
 <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-lg border border-slate-800 space-y-4">
-
 <div class="border-b border-slate-800 pb-3">
-
-<h2 class="text-base font-bold text-sky-400 flex items-center gap-2">
-
-<span>☕</span> Registrar Consumo / Ventas en Barra
-
+<h2 class="text-base font-bold text-indigo-400 flex items-center gap-2">
+<span>🔄</span> Traspaso (Depósito ➔ Cafetería)
 </h2>
-
-<p class="text-xs text-slate-400 mt-0.5">Descuenta insumos del stock de Cafetería</p>
-
+<p class="text-xs text-slate-400 mt-0.5">Mueve insumos desde el depósito hacia la barra/vitrina</p>
 </div>
-
-
 
 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
-
 <div class="sm:col-span-6">
-
-<label class="block text-xs font-medium text-slate-300 mb-1">Producto en Cafetería</label>
-
-<select id="selectProductoBarra" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none"></select>
-
+<label class="block text-xs font-medium text-slate-300 mb-1">Producto en Depósito</label>
+<select id="selectProductoTraspaso" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none"></select>
 </div>
-
 <div class="sm:col-span-3">
-
 <label class="block text-xs font-medium text-slate-300 mb-1">Cantidad</label>
-
-<input type="number" id="cantBarra" min="1" value="1" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none">
-
+<input type="number" id="cantTraspaso" min="1" value="1" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none">
 </div>
-
 <div class="sm:col-span-3 flex items-end">
-
-<button type="button" id="btnAgregarABarra" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-medium py-2 rounded-lg transition text-sm flex items-center justify-center gap-1 active:scale-95">
-
+<button type="button" id="btnAgregarATraspaso" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-medium py-2 rounded-lg transition text-sm flex items-center justify-center gap-1 active:scale-95">
 ➕ Agregar
-
 </button>
-
 </div>
-
 </div>
-
-
 
 <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
-
-<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Lista de Consumo:</p>
-
-<div id="listaBarraActual" class="space-y-2 max-h-48 overflow-y-auto"></div>
-
-
+<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Lista de Traspaso:</p>
+<div id="listaTraspasoActual" class="space-y-2 max-h-48 overflow-y-auto"></div>
 
 <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center">
-
-<span id="resumenBarraCount" class="text-xs text-slate-400">0 ítems</span>
-
-<button type="button" id="btnConfirmarBarra" class="bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-bold px-5 py-2.5 rounded-lg transition text-sm shadow-md active:scale-95" disabled>
-
-✅ Registrar Consumo
-
+<span id="resumenTraspasoCount" class="text-xs text-slate-400">0 ítems</span>
+<button type="button" id="btnConfirmarTraspaso" class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold px-5 py-2.5 rounded-lg transition text-sm shadow-md active:scale-95" disabled>
+✅ Confirmar Traspaso Múltiple
 </button>
-
 </div>
-
 </div>
-
 </div>
-
 </section>
 
+<!-- 4. SECCIÓN: VENTAS & BARRA -->
+<section id="sec-barra" class="seccion-vista">
+<div class="bg-slate-900 text-white p-5 rounded-2xl shadow-lg border border-slate-800 space-y-4">
+<div class="border-b border-slate-800 pb-3">
+<h2 class="text-base font-bold text-sky-400 flex items-center gap-2">
+<span>☕</span> Registrar Consumo / Ventas en Barra
+</h2>
+<p class="text-xs text-slate-400 mt-0.5">Descuenta insumos del stock de Cafetería</p>
+</div>
 
+<div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+<div class="sm:col-span-6">
+<label class="block text-xs font-medium text-slate-300 mb-1">Producto en Cafetería</label>
+<select id="selectProductoBarra" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none"></select>
+</div>
+<div class="sm:col-span-3">
+<label class="block text-xs font-medium text-slate-300 mb-1">Cantidad</label>
+<input type="number" id="cantBarra" min="1" value="1" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none">
+</div>
+<div class="sm:col-span-3 flex items-end">
+<button type="button" id="btnAgregarABarra" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-medium py-2 rounded-lg transition text-sm flex items-center justify-center gap-1 active:scale-95">
+➕ Agregar
+</button>
+</div>
+</div>
+
+<div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Lista de Consumo:</p>
+<div id="listaBarraActual" class="space-y-2 max-h-48 overflow-y-auto"></div>
+
+<div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center">
+<span id="resumenBarraCount" class="text-xs text-slate-400">0 ítems</span>
+<button type="button" id="btnConfirmarBarra" class="bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-bold px-5 py-2.5 rounded-lg transition text-sm shadow-md active:scale-95" disabled>
+✅ Registrar Consumo
+</button>
+</div>
+</div>
+</div>
+</section>
 
 <!-- 5. SECCIÓN: INGRESO DE MERCADERÍA -->
-
 <section id="sec-ingreso" class="seccion-vista">
-
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-
 <div class="border-b border-slate-100 pb-3">
-
 <h2 class="text-base font-bold text-emerald-600 flex items-center gap-2">
-
 <span>📥</span> Registrar Ingreso de Mercadería
-
 </h2>
-
 </div>
-
-
 
 <div class="space-y-3">
-
 <div>
-
 <label class="block text-xs font-medium text-slate-700 mb-1">Ubicación Destino</label>
-
 <select id="selectDestinoIngreso" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
-
 <option value="deposito">Depósito</option>
-
 <option value="cafeteria">Cafetería / Vitrina</option>
-
 </select>
-
 </div>
-
 <div>
-
 <label class="block text-xs font-medium text-slate-700 mb-1">Producto</label>
-
 <select id="selectProductoIngreso" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none"></select>
-
 </div>
-
 <div>
-
 <label class="block text-xs font-medium text-slate-700 mb-1">Cantidad Ingresada</label>
-
 <input type="number" id="cantIngreso" min="1" value="1" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
-
 </div>
-
 <button type="button" id="btnGuardarIngreso" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition text-sm shadow active:scale-95">
-
 📥 Guardar Ingreso
-
 </button>
-
 </div>
-
 </div>
-
 </section>
-
-
 
 <!-- 6. SECCIÓN: NUEVO PRODUCTO Y MANTENIMIENTO (ADMIN) -->
-
 <section id="sec-nuevo_prod" class="seccion-vista">
-
 <div id="content-nuevo_prod" class="space-y-4">
-
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-
 <div class="border-b border-slate-100 pb-3 flex justify-between items-start">
-
 <div>
-
 <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-
 <span>🔒</span> Registrar Nuevo Producto
-
 </h2>
-
 <p class="text-xs text-slate-500 mt-0.5">Exclusivo Administrador</p>
-
 </div>
-
 </div>
-
-
 
 <div class="space-y-3">
-
 <div>
-
 <label class="block text-xs font-medium text-slate-700 mb-1">Nombre del Producto</label>
-
 <input type="text" id="prodNombre" placeholder="Ej. Leche Entera" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
-
 </div>
-
 <div class="grid grid-cols-2 gap-3">
-
 <div>
-
 <label class="block text-xs font-medium text-slate-700 mb-1">Stock Inicial Depósito</label>
-
 <input type="number" id="prodStockDep" min="0" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
-
 </div>
-
 <div>
-
 <label class="block text-xs font-medium text-slate-700 mb-1">Stock Inicial Cafetería</label>
-
 <input type="number" id="prodStockCaf" min="0" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
-
 </div>
-
 </div>
-
 <button type="button" id="btnGuardarNuevoProd" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5 rounded-lg transition text-sm shadow active:scale-95">
-
 💾 Guardar Producto
-
 </button>
-
 </div>
-
 </div>
-
 </div>
-
 </section>
 
-
-
 <!-- 7. SECCIÓN: HISTORIAL DE MOVIMIENTOS -->
-
 <section id="sec-historial" class="seccion-vista">
-
 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-
 <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-
 <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-
 <span>📑</span> Historial de Movimientos
-
 </h2>
-
 </div>
-
-
 
 <div id="contenedorHistorial" class="space-y-3"></div>
 
-
-
 <div id="emptyHistorial" class="text-center text-slate-400 text-sm py-8 hidden">
-
 Aún no hay registros en el historial.
-
 </div>
-
 </div>
-
 </section>
-
-
 
 </main>
 
-
-
 <!-- Cargar el script JS -->
-
 <script type="module" src="script.js"></script>
-
 </body>
-
 </html>
