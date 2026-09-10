@@ -24,6 +24,7 @@ const historyRef = ref(db, 'historial');
 let inventario = [];
 let historialMovimientos = [];
 let listaBarraActual = [];
+let listaTraspasoActual = [];
 
 // Helper para formato de fecha único y estándar (DD/MM/YYYY)
 function getFechaHoy() {
@@ -261,6 +262,7 @@ window.cerrarSesion = function() {
   if (confirm("¿Deseas cerrar la sesión activa?")) {
     sessionStorage.removeItem('usuarioLogueado');
     listaBarraActual = [];
+    listaTraspasoActual = [];
     mostrarPantallaPerfiles();
   }
 };
@@ -318,7 +320,7 @@ window.eliminarProducto = function(id, nombre) {
   }
 };
 
-// --- OPERACIONES: TRASPASO, INGRESOS Y VENTAS BARRA (Detección automática de usuario) ---
+// --- OPERACIONES: HISTORIAL Y TURNOS ---
 
 function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   const usuario = sessionStorage.getItem('usuarioLogueado') || 'Usuario';
@@ -371,12 +373,14 @@ function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   }
 }
 
-function ejecutarTraspaso() {
+// --- TRASPASOS MÚLTIPLES ---
+
+function agregarATraspaso() {
   const select = document.getElementById('selectProductoTraspaso');
   const cantInput = document.getElementById('cantTraspaso');
 
   const idProd = parseInt(select.value);
-  const cantidad = parseInt(cantInput.value) || 0;
+  const cantidad = parseInt(cantInput.value) || 1;
 
   if (!idProd || cantidad <= 0) return;
 
@@ -384,20 +388,61 @@ function ejecutarTraspaso() {
   if (!prod) return;
 
   if (cantidad > prod.stockDeposito) {
-    alert(`Stock insuficiente en Depósito. Solo quedan ${prod.stockDeposito} unids.`);
+    alert(`Stock insuficiente en Depósito para "${prod.nombre}". Solo quedan ${prod.stockDeposito} unids.`);
     return;
   }
 
-  prod.stockDeposito -= cantidad;
-  prod.stockCafeteria += cantidad;
+  const yaEnTraspaso = listaTraspasoActual.filter(it => it.id === idProd).reduce((acc, it) => acc + it.cantidad, 0);
+  if ((yaEnTraspaso + cantidad) > prod.stockDeposito) {
+    alert(`La cantidad total supera el stock disponible en Depósito (${prod.stockDeposito}).`);
+    return;
+  }
+
+  const existente = listaTraspasoActual.find(it => it.id === idProd);
+  if (existente) {
+    existente.cantidad += cantidad;
+  } else {
+    listaTraspasoActual.push({ id: prod.id, nombre: prod.nombre, cantidad: cantidad });
+  }
+
+  cantInput.value = 1;
+  renderListaTraspaso();
+}
+
+window.quitarDeTraspaso = function(idx) {
+  listaTraspasoActual.splice(idx, 1);
+  renderListaTraspaso();
+};
+
+function ejecutarTraspaso() {
+  if (listaTraspasoActual.length === 0) return;
+
+  for (const item of listaTraspasoActual) {
+    const prod = inventario.find(p => p.id === item.id);
+    if (!prod || item.cantidad > prod.stockDeposito) {
+      alert(`Stock insuficiente para "${item.nombre}".`);
+      return;
+    }
+  }
+
+  listaTraspasoActual.forEach(itemTraspaso => {
+    const prod = inventario.find(p => p.id === itemTraspaso.id);
+    if (prod) {
+      prod.stockDeposito -= itemTraspaso.cantidad;
+      prod.stockCafeteria += itemTraspaso.cantidad;
+    }
+  });
 
   set(inventoryRef, inventario);
-  registrarMovimientoEnTurno('TRASPASO', [{ nombre: prod.nombre, cantidad: cantidad }], 'Depósito ➔ Cafetería');
+  registrarMovimientoEnTurno('TRASPASO', listaTraspasoActual, 'Depósito ➔ Cafetería');
 
-  alert(`✅ Traspaso exitoso: ${cantidad} unids de "${prod.nombre}" movidos a Cafetería/Vitrina.`);
-  cantInput.value = 1;
+  listaTraspasoActual = [];
+  alert(`✅ Traspaso registrado correctamente.`);
+  renderListaTraspaso();
   irASeccion('tab-stock');
 }
+
+// --- INGRESOS Y VENTAS BARRA ---
 
 function confirmarIngresoStock() {
   const selectDestino = document.getElementById('selectDestinoIngreso');
@@ -441,12 +486,14 @@ function agregarABarra() {
     return;
   }
 
+  const yaEnBarra = listaBarraActual.filter(it => it.id === idProd).reduce((acc, it) => acc + it.cantidad, 0);
+  if ((yaEnBarra + cantidad) > prod.stockCafeteria) {
+    alert(`La cantidad supera el stock disponible en Cafetería (${prod.stockCafeteria}).`);
+    return;
+  }
+
   const existente = listaBarraActual.find(it => it.id === idProd);
   if (existente) {
-    if ((existente.cantidad + cantidad) > prod.stockCafeteria) {
-      alert(`La cantidad supera el stock disponible en Cafetería (${prod.stockCafeteria}).`);
-      return;
-    }
     existente.cantidad += cantidad;
   } else {
     listaBarraActual.push({ id: prod.id, nombre: prod.nombre, cantidad: cantidad });
@@ -476,10 +523,11 @@ function confirmarConsumoBarra() {
 
   listaBarraActual = [];
   alert(`✅ Consumo registrado correctamente.`);
+  renderListaBarra();
   irASeccion('tab-stock');
 }
 
-// --- ANULACIÓN CON RESTRICCIÓN DE PERMISOS (Creador o Admin) ---
+// --- ANULACIÓN CON RESTRICCIÓN DE PERMISOS ---
 
 window.eliminarRegistroHistorial = function(key, idRegistro) {
   const reg = historialMovimientos.find(m => m.id === idRegistro || m._firebaseKey === key);
@@ -487,9 +535,8 @@ window.eliminarRegistroHistorial = function(key, idRegistro) {
 
   const usuarioActual = sessionStorage.getItem('usuarioLogueado');
   const esAdmin = usuarioActual === 'Administrador';
-  const esCreador = reg.usuario === usuarioActual;
+  const esCreador = reg.usuario && reg.usuario === usuarioActual;
 
-  // Validación estricta: Solo el administrador o el creador del registro pueden borrarlo
   if (!esAdmin && !esCreador) {
     alert("⛔ No tienes permisos para anular este registro porque pertenece a otro usuario.");
     return;
@@ -616,12 +663,13 @@ window.reiniciarStockTodo = function() {
   }
 };
 
-// --- RENDERIZADO GENERAL Y FILTRADO (Reorganización de pantallas) ---
+// --- RENDERIZADO GENERAL Y FILTRADO ---
 
 function renderTodo() {
   renderInventario();
   renderSelectores();
   renderListaBarra();
+  renderListaTraspaso();
   renderHistorial();
 }
 
@@ -629,7 +677,7 @@ function renderInventario() {
   const ordenados = ordenarInventario(inventario);
   const esAdmin = sessionStorage.getItem('usuarioLogueado') === 'Administrador';
 
-  // 1. RENDERIZAR TABLA CAFETERÍA / VITRINA (Ahora Arriba)
+  // Cafetería arriba
   const tbodyCaf = document.getElementById('tablaCafeteria');
   if (tbodyCaf) {
     tbodyCaf.innerHTML = '';
@@ -644,7 +692,7 @@ function renderInventario() {
     });
   }
 
-  // 2. RENDERIZAR TABLA DEPÓSITO (Ahora Abajo)
+  // Depósito abajo
   const tbodyDep = document.getElementById('tablaDeposito');
   if (tbodyDep) {
     tbodyDep.innerHTML = '';
@@ -664,7 +712,7 @@ function renderInventario() {
     });
   }
 
-  // 3. RENDERIZAR NUEVA TABLA INVENTARIO TOTAL
+  // Inventario Total
   const tbodyTot = document.getElementById('tablaTotal');
   if (tbodyTot) {
     tbodyTot.innerHTML = '';
@@ -682,7 +730,6 @@ function renderInventario() {
     });
   }
 
-  // Contadores Header
   const elTotalProd = document.getElementById('statTotalProductos');
   if (elTotalProd) elTotalProd.textContent = inventario.length;
 
@@ -727,6 +774,41 @@ function renderSelectores() {
   });
 }
 
+function renderListaTraspaso() {
+  const lista = document.getElementById('listaTraspasoActual');
+  const btnConf = document.getElementById('btnConfirmarTraspaso');
+  const resCount = document.getElementById('resumenTraspasoCount');
+
+  if (!lista) return;
+  lista.innerHTML = '';
+
+  if (listaTraspasoActual.length === 0) {
+    lista.innerHTML = `<p class="text-xs text-slate-500 italic py-2">Ningún producto agregado al traspaso.</p>`;
+    if (btnConf) btnConf.disabled = true;
+    if (resCount) resCount.textContent = '0 ítems';
+    return;
+  }
+
+  if (btnConf) btnConf.disabled = false;
+  let totalUnidades = 0;
+
+  listaTraspasoActual.forEach((item, idx) => {
+    totalUnidades += item.cantidad;
+    const div = document.createElement('div');
+    div.className = 'flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs';
+    div.innerHTML = `
+      <span class="text-slate-200">${item.nombre}</span>
+      <div class="flex items-center gap-2">
+        <span class="bg-amber-950 text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-800">+${item.cantidad} a Cafetería</span>
+        <button type="button" onclick="quitarDeTraspaso(${idx})" class="text-slate-500 hover:text-rose-400 font-bold px-1">✕</button>
+      </div>
+    `;
+    lista.appendChild(div);
+  });
+
+  if (resCount) resCount.textContent = `${listaTraspasoActual.length} tipo(s) | Total: ${totalUnidades}`;
+}
+
 function renderListaBarra() {
   const lista = document.getElementById('listaBarraActual');
   const btnConf = document.getElementById('btnConfirmarBarra');
@@ -761,8 +843,6 @@ function renderListaBarra() {
 
   if (resCount) resCount.textContent = `${listaBarraActual.length} tipo(s) | Total: ${totalUnidades}`;
 }
-
-// --- HISTORIAL AGRUPADO POR DÍA CON VALIDACIÓN DE ELIMINACIÓN ---
 
 function renderHistorial() {
   const contenedor = document.getElementById('contenedorHistorial');
@@ -809,8 +889,7 @@ function renderHistorial() {
         </div>
       `).join('');
 
-      // Mostrar botón de anular sólo si es el admin o el usuario dueño del registro
-      const esCreador = reg.usuario === usuarioActual;
+      const esCreador = reg.usuario && reg.usuario === usuarioActual;
       const puedeBorrar = esAdmin || esCreador;
 
       card.innerHTML = `
@@ -831,7 +910,7 @@ function renderHistorial() {
   });
 }
 
-// Inicialización robusta compatible con ES Modules
+// Inicialización
 function iniciarApp() {
   verificarSesion();
 
@@ -858,7 +937,8 @@ function iniciarApp() {
   });
 
   document.getElementById('btnGuardarNuevoProd')?.addEventListener('click', guardarProductoNuevo);
-  document.getElementById('btnEjecutarTraspaso')?.addEventListener('click', ejecutarTraspaso);
+  document.getElementById('btnAgregarATraspaso')?.addEventListener('click', agregarATraspaso);
+  document.getElementById('btnConfirmarTraspaso')?.addEventListener('click', ejecutarTraspaso);
   document.getElementById('btnGuardarIngreso')?.addEventListener('click', confirmarIngresoStock);
   document.getElementById('btnAgregarABarra')?.addEventListener('click', agregarABarra);
   document.getElementById('btnConfirmarBarra')?.addEventListener('click', confirmarConsumoBarra);
