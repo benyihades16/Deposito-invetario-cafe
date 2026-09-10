@@ -318,7 +318,7 @@ window.eliminarProducto = function(id, nombre) {
   }
 };
 
-// --- OPERACIONES: TRASPASO, INGRESOS Y VENTAS BARRA ---
+// --- OPERACIONES: TRASPASO, INGRESOS Y VENTAS BARRA (Detección automática de usuario) ---
 
 function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   const usuario = sessionStorage.getItem('usuarioLogueado') || 'Usuario';
@@ -479,13 +479,23 @@ function confirmarConsumoBarra() {
   irASeccion('tab-stock');
 }
 
-// --- ANULACIÓN Y ELIMINACIÓN DE REGISTROS ---
+// --- ANULACIÓN CON RESTRICCIÓN DE PERMISOS (Creador o Admin) ---
 
 window.eliminarRegistroHistorial = function(key, idRegistro) {
   const reg = historialMovimientos.find(m => m.id === idRegistro || m._firebaseKey === key);
   if (!reg) return;
 
-  if (!confirm(`⚠️ ¿Anular este registro de ${reg.tipo}?\nEl stock afectado se devolverá automáticamente.`)) return;
+  const usuarioActual = sessionStorage.getItem('usuarioLogueado');
+  const esAdmin = usuarioActual === 'Administrador';
+  const esCreador = reg.usuario === usuarioActual;
+
+  // Validación estricta: Solo el administrador o el creador del registro pueden borrarlo
+  if (!esAdmin && !esCreador) {
+    alert("⛔ No tienes permisos para anular este registro porque pertenece a otro usuario.");
+    return;
+  }
+
+  if (!confirm(`⚠️ ¿Anular este registro de ${reg.tipo} (Creado por: ${reg.usuario})?\nEl stock afectado se devolverá automáticamente.`)) return;
 
   reg.items.forEach(item => {
     const prod = inventario.find(p => p.nombre === item.nombre);
@@ -606,7 +616,7 @@ window.reiniciarStockTodo = function() {
   }
 };
 
-// --- RENDERIZADO GENERAL Y FILTRADO ---
+// --- RENDERIZADO GENERAL Y FILTRADO (Reorganización de pantallas) ---
 
 function renderTodo() {
   renderInventario();
@@ -619,7 +629,22 @@ function renderInventario() {
   const ordenados = ordenarInventario(inventario);
   const esAdmin = sessionStorage.getItem('usuarioLogueado') === 'Administrador';
 
-  // 1. RENDERIZAR TABLA DEPÓSITO
+  // 1. RENDERIZAR TABLA CAFETERÍA / VITRINA (Ahora Arriba)
+  const tbodyCaf = document.getElementById('tablaCafeteria');
+  if (tbodyCaf) {
+    tbodyCaf.innerHTML = '';
+    ordenados.forEach(prod => {
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+      tr.innerHTML = `
+        <td class="py-3 px-2 font-semibold text-slate-800">${prod.nombre}</td>
+        <td class="py-3 px-2 text-center text-sky-700 font-mono font-bold">${prod.stockCafeteria}</td>
+      `;
+      tbodyCaf.appendChild(tr);
+    });
+  }
+
+  // 2. RENDERIZAR TABLA DEPÓSITO (Ahora Abajo)
   const tbodyDep = document.getElementById('tablaDeposito');
   if (tbodyDep) {
     tbodyDep.innerHTML = '';
@@ -636,21 +661,6 @@ function renderInventario() {
         ` : ''}
       `;
       tbodyDep.appendChild(tr);
-    });
-  }
-
-  // 2. RENDERIZAR TABLA CAFETERÍA / VITRINA
-  const tbodyCaf = document.getElementById('tablaCafeteria');
-  if (tbodyCaf) {
-    tbodyCaf.innerHTML = '';
-    ordenados.forEach(prod => {
-      const tr = document.createElement('tr');
-      tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
-      tr.innerHTML = `
-        <td class="py-3 px-2 font-semibold text-slate-800">${prod.nombre}</td>
-        <td class="py-3 px-2 text-center text-sky-700 font-mono font-bold">${prod.stockCafeteria}</td>
-      `;
-      tbodyCaf.appendChild(tr);
     });
   }
 
@@ -752,6 +762,8 @@ function renderListaBarra() {
   if (resCount) resCount.textContent = `${listaBarraActual.length} tipo(s) | Total: ${totalUnidades}`;
 }
 
+// --- HISTORIAL AGRUPADO POR DÍA CON VALIDACIÓN DE ELIMINACIÓN ---
+
 function renderHistorial() {
   const contenedor = document.getElementById('contenedorHistorial');
   const empty = document.getElementById('emptyHistorial');
@@ -771,6 +783,9 @@ function renderHistorial() {
     if (!gruposPorDia[fechaKey]) gruposPorDia[fechaKey] = [];
     gruposPorDia[fechaKey].push(reg);
   });
+
+  const usuarioActual = sessionStorage.getItem('usuarioLogueado');
+  const esAdmin = usuarioActual === 'Administrador';
 
   Object.keys(gruposPorDia).forEach(fechaDia => {
     const movsDelDia = gruposPorDia[fechaDia];
@@ -794,6 +809,10 @@ function renderHistorial() {
         </div>
       `).join('');
 
+      // Mostrar botón de anular sólo si es el admin o el usuario dueño del registro
+      const esCreador = reg.usuario === usuarioActual;
+      const puedeBorrar = esAdmin || esCreador;
+
       card.innerHTML = `
         <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
           <div class="flex items-center gap-1.5">
@@ -802,7 +821,7 @@ function renderHistorial() {
             </span>
             <span class="font-bold text-slate-700">👤 ${reg.usuario}</span>
           </div>
-          <button onclick="eliminarRegistroHistorial('${reg._firebaseKey}', ${reg.id})" class="text-rose-500 hover:text-rose-700 font-semibold text-[11px]">🗑️ Anular</button>
+          ${puedeBorrar ? `<button onclick="eliminarRegistroHistorial('${reg._firebaseKey}', ${reg.id})" class="text-rose-500 hover:text-rose-700 font-semibold text-[11px]">🗑️ Anular</button>` : `<span class="text-[10px] text-slate-400 italic">Solo lectura</span>`}
         </div>
         <div class="space-y-0.5 bg-slate-50 p-2 rounded-lg">${itemsHTML}</div>
         <div class="text-[10px] text-slate-400 text-right font-mono">${reg.fecha} (${reg.origen || 'General'})</div>
@@ -812,7 +831,7 @@ function renderHistorial() {
   });
 }
 
-// Inicialización robusta compatible con ES Modules (corrección del evento DOMContentLoaded)
+// Inicialización robusta compatible con ES Modules
 function iniciarApp() {
   verificarSesion();
 
