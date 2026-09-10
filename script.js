@@ -320,7 +320,7 @@ window.eliminarProducto = function(id, nombre) {
   }
 };
 
-// --- OPERACIONES: HISTORIAL Y TURNOS ---
+// --- OPERACIONES: TRASPASO, INGRESOS Y VENTAS BARRA (Detección automática de usuario) ---
 
 function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   const usuario = sessionStorage.getItem('usuarioLogueado') || 'Usuario';
@@ -374,7 +374,6 @@ function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
 }
 
 // --- TRASPASOS MÚLTIPLES ---
-
 function agregarATraspaso() {
   const select = document.getElementById('selectProductoTraspaso');
   const cantInput = document.getElementById('cantTraspaso');
@@ -387,20 +386,16 @@ function agregarATraspaso() {
   const prod = inventario.find(p => p.id === idProd);
   if (!prod) return;
 
-  if (cantidad > prod.stockDeposito) {
-    alert(`Stock insuficiente en Depósito para "${prod.nombre}". Solo quedan ${prod.stockDeposito} unids.`);
+  const existenteEnLista = listaTraspasoActual.find(it => it.id === idProd);
+  const cantidadYaAgregada = existenteEnLista ? existenteEnLista.cantidad : 0;
+
+  if ((cantidadYaAgregada + cantidad) > prod.stockDeposito) {
+    alert(`Stock insuficiente en Depósito de "${prod.nombre}". Solo quedan ${prod.stockDeposito} unids (ya tienes ${cantidadYaAgregada} en la lista).`);
     return;
   }
 
-  const yaEnTraspaso = listaTraspasoActual.filter(it => it.id === idProd).reduce((acc, it) => acc + it.cantidad, 0);
-  if ((yaEnTraspaso + cantidad) > prod.stockDeposito) {
-    alert(`La cantidad total supera el stock disponible en Depósito (${prod.stockDeposito}).`);
-    return;
-  }
-
-  const existente = listaTraspasoActual.find(it => it.id === idProd);
-  if (existente) {
-    existente.cantidad += cantidad;
+  if (existenteEnLista) {
+    existenteEnLista.cantidad += cantidad;
   } else {
     listaTraspasoActual.push({ id: prod.id, nombre: prod.nombre, cantidad: cantidad });
   }
@@ -414,13 +409,13 @@ window.quitarDeTraspaso = function(idx) {
   renderListaTraspaso();
 };
 
-function ejecutarTraspaso() {
+function confirmarTraspasoMultiple() {
   if (listaTraspasoActual.length === 0) return;
 
-  for (const item of listaTraspasoActual) {
+  for (let item of listaTraspasoActual) {
     const prod = inventario.find(p => p.id === item.id);
-    if (!prod || item.cantidad > prod.stockDeposito) {
-      alert(`Stock insuficiente para "${item.nombre}".`);
+    if (!prod || prod.stockDeposito < item.cantidad) {
+      alert(`Stock insuficiente para "${item.nombre}". Verifique el depósito.`);
       return;
     }
   }
@@ -428,7 +423,7 @@ function ejecutarTraspaso() {
   listaTraspasoActual.forEach(itemTraspaso => {
     const prod = inventario.find(p => p.id === itemTraspaso.id);
     if (prod) {
-      prod.stockDeposito -= itemTraspaso.cantidad;
+      prod.stockDeposito = Math.max(0, prod.stockDeposito - itemTraspaso.cantidad);
       prod.stockCafeteria += itemTraspaso.cantidad;
     }
   });
@@ -437,12 +432,9 @@ function ejecutarTraspaso() {
   registrarMovimientoEnTurno('TRASPASO', listaTraspasoActual, 'Depósito ➔ Cafetería');
 
   listaTraspasoActual = [];
-  alert(`✅ Traspaso registrado correctamente.`);
-  renderListaTraspaso();
+  alert(`✅ Traspaso múltiple registrado correctamente.`);
   irASeccion('tab-stock');
 }
-
-// --- INGRESOS Y VENTAS BARRA ---
 
 function confirmarIngresoStock() {
   const selectDestino = document.getElementById('selectDestinoIngreso');
@@ -481,18 +473,14 @@ function agregarABarra() {
   const prod = inventario.find(p => p.id === idProd);
   if (!prod) return;
 
-  if (cantidad > prod.stockCafeteria) {
-    alert(`Stock insuficiente en Cafetería de "${prod.nombre}". Solo quedan ${prod.stockCafeteria} unids.`);
-    return;
-  }
+  const existente = listaBarraActual.find(it => it.id === idProd);
+  const cantidadYaAgregada = existente ? existente.cantidad : 0;
 
-  const yaEnBarra = listaBarraActual.filter(it => it.id === idProd).reduce((acc, it) => acc + it.cantidad, 0);
-  if ((yaEnBarra + cantidad) > prod.stockCafeteria) {
+  if ((cantidadYaAgregada + cantidad) > prod.stockCafeteria) {
     alert(`La cantidad supera el stock disponible en Cafetería (${prod.stockCafeteria}).`);
     return;
   }
 
-  const existente = listaBarraActual.find(it => it.id === idProd);
   if (existente) {
     existente.cantidad += cantidad;
   } else {
@@ -523,11 +511,10 @@ function confirmarConsumoBarra() {
 
   listaBarraActual = [];
   alert(`✅ Consumo registrado correctamente.`);
-  renderListaBarra();
   irASeccion('tab-stock');
 }
 
-// --- ANULACIÓN CON RESTRICCIÓN DE PERMISOS ---
+// --- ANULACIÓN CON RESTRICCIÓN DE PERMISOS (Creador o Admin) ---
 
 window.eliminarRegistroHistorial = function(key, idRegistro) {
   const reg = historialMovimientos.find(m => m.id === idRegistro || m._firebaseKey === key);
@@ -535,7 +522,7 @@ window.eliminarRegistroHistorial = function(key, idRegistro) {
 
   const usuarioActual = sessionStorage.getItem('usuarioLogueado');
   const esAdmin = usuarioActual === 'Administrador';
-  const esCreador = reg.usuario && reg.usuario === usuarioActual;
+  const esCreador = reg.usuario === usuarioActual;
 
   if (!esAdmin && !esCreador) {
     alert("⛔ No tienes permisos para anular este registro porque pertenece a otro usuario.");
@@ -677,7 +664,7 @@ function renderInventario() {
   const ordenados = ordenarInventario(inventario);
   const esAdmin = sessionStorage.getItem('usuarioLogueado') === 'Administrador';
 
-  // Cafetería arriba
+  // 1. CAFETERÍA / VITRINA (Arriba)
   const tbodyCaf = document.getElementById('tablaCafeteria');
   if (tbodyCaf) {
     tbodyCaf.innerHTML = '';
@@ -692,7 +679,7 @@ function renderInventario() {
     });
   }
 
-  // Depósito abajo
+  // 2. DEPÓSITO (Abajo)
   const tbodyDep = document.getElementById('tablaDeposito');
   if (tbodyDep) {
     tbodyDep.innerHTML = '';
@@ -712,7 +699,7 @@ function renderInventario() {
     });
   }
 
-  // Inventario Total
+  // 3. INVENTARIO TOTAL
   const tbodyTot = document.getElementById('tablaTotal');
   if (tbodyTot) {
     tbodyTot.innerHTML = '';
@@ -730,6 +717,7 @@ function renderInventario() {
     });
   }
 
+  // Contadores Header
   const elTotalProd = document.getElementById('statTotalProductos');
   if (elTotalProd) elTotalProd.textContent = inventario.length;
 
@@ -774,41 +762,6 @@ function renderSelectores() {
   });
 }
 
-function renderListaTraspaso() {
-  const lista = document.getElementById('listaTraspasoActual');
-  const btnConf = document.getElementById('btnConfirmarTraspaso');
-  const resCount = document.getElementById('resumenTraspasoCount');
-
-  if (!lista) return;
-  lista.innerHTML = '';
-
-  if (listaTraspasoActual.length === 0) {
-    lista.innerHTML = `<p class="text-xs text-slate-500 italic py-2">Ningún producto agregado al traspaso.</p>`;
-    if (btnConf) btnConf.disabled = true;
-    if (resCount) resCount.textContent = '0 ítems';
-    return;
-  }
-
-  if (btnConf) btnConf.disabled = false;
-  let totalUnidades = 0;
-
-  listaTraspasoActual.forEach((item, idx) => {
-    totalUnidades += item.cantidad;
-    const div = document.createElement('div');
-    div.className = 'flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs';
-    div.innerHTML = `
-      <span class="text-slate-200">${item.nombre}</span>
-      <div class="flex items-center gap-2">
-        <span class="bg-amber-950 text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-800">+${item.cantidad} a Cafetería</span>
-        <button type="button" onclick="quitarDeTraspaso(${idx})" class="text-slate-500 hover:text-rose-400 font-bold px-1">✕</button>
-      </div>
-    `;
-    lista.appendChild(div);
-  });
-
-  if (resCount) resCount.textContent = `${listaTraspasoActual.length} tipo(s) | Total: ${totalUnidades}`;
-}
-
 function renderListaBarra() {
   const lista = document.getElementById('listaBarraActual');
   const btnConf = document.getElementById('btnConfirmarBarra');
@@ -843,6 +796,43 @@ function renderListaBarra() {
 
   if (resCount) resCount.textContent = `${listaBarraActual.length} tipo(s) | Total: ${totalUnidades}`;
 }
+
+function renderListaTraspaso() {
+  const lista = document.getElementById('listaTraspasoActual');
+  const btnConf = document.getElementById('btnConfirmarTraspaso');
+  const resCount = document.getElementById('resumenTraspasoCount');
+
+  if (!lista) return;
+  lista.innerHTML = '';
+
+  if (listaTraspasoActual.length === 0) {
+    lista.innerHTML = `<p class="text-xs text-slate-500 italic py-2">Ningún producto agregado aún.</p>`;
+    if (btnConf) btnConf.disabled = true;
+    if (resCount) resCount.textContent = '0 ítems';
+    return;
+  }
+
+  if (btnConf) btnConf.disabled = false;
+  let totalUnidades = 0;
+
+  listaTraspasoActual.forEach((item, idx) => {
+    totalUnidades += item.cantidad;
+    const div = document.createElement('div');
+    div.className = 'flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs';
+    div.innerHTML = `
+      <span class="text-slate-200">${item.nombre}</span>
+      <div class="flex items-center gap-2">
+        <span class="bg-indigo-950 text-indigo-300 font-bold px-2 py-0.5 rounded border border-indigo-800">+${item.cantidad} en Vitrina</span>
+        <button type="button" onclick="quitarDeTraspaso(${idx})" class="text-slate-500 hover:text-rose-400 font-bold px-1">✕</button>
+      </div>
+    `;
+    lista.appendChild(div);
+  });
+
+  if (resCount) resCount.textContent = `${listaTraspasoActual.length} tipo(s) | Total: ${totalUnidades}`;
+}
+
+// --- HISTORIAL AGRUPADO POR DÍA CON VALIDACIÓN DE ELIMINACIÓN ---
 
 function renderHistorial() {
   const contenedor = document.getElementById('contenedorHistorial');
@@ -889,7 +879,7 @@ function renderHistorial() {
         </div>
       `).join('');
 
-      const esCreador = reg.usuario && reg.usuario === usuarioActual;
+      const esCreador = reg.usuario === usuarioActual;
       const puedeBorrar = esAdmin || esCreador;
 
       card.innerHTML = `
@@ -910,7 +900,7 @@ function renderHistorial() {
   });
 }
 
-// Inicialización
+// Inicialización de la aplicación
 function iniciarApp() {
   verificarSesion();
 
@@ -928,24 +918,23 @@ function iniciarApp() {
   };
 
   radioTabs.forEach(radio => {
-    radio.addEventListener('change', function() {
-      if (this.checked && tituloEl) {
-        tituloEl.textContent = titulosMap[this.id] || 'Control de Depósito';
-        renderTodo();
+    radio.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        if (tituloEl && titulosMap[e.target.id]) {
+          tituloEl.textContent = titulosMap[e.target.id];
+        }
       }
     });
   });
 
+  // Vincular eventos a botones principales
   document.getElementById('btnGuardarNuevoProd')?.addEventListener('click', guardarProductoNuevo);
   document.getElementById('btnAgregarATraspaso')?.addEventListener('click', agregarATraspaso);
-  document.getElementById('btnConfirmarTraspaso')?.addEventListener('click', ejecutarTraspaso);
-  document.getElementById('btnGuardarIngreso')?.addEventListener('click', confirmarIngresoStock);
+  document.getElementById('btnConfirmarTraspaso')?.addEventListener('click', confirmarTraspasoMultiple);
   document.getElementById('btnAgregarABarra')?.addEventListener('click', agregarABarra);
   document.getElementById('btnConfirmarBarra')?.addEventListener('click', confirmarConsumoBarra);
+  document.getElementById('btnGuardarIngreso')?.addEventListener('click', confirmarIngresoStock);
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', iniciarApp);
-} else {
-  iniciarApp();
-}
+// Ejecutar al cargar la página
+window.addEventListener('DOMContentLoaded', iniciarApp);
