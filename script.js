@@ -431,7 +431,9 @@ function confirmarTraspasoMultiple() {
     const prod = inventario.find(p => p.id === itemTraspaso.id);
     if (prod) {
       prod.stockDeposito = Math.max(0, prod.stockDeposito - itemTraspaso.cantidad);
+      if (prod.tipo !== 'insumo') {
       prod.stockCafeteria += itemTraspaso.cantidad;
+      }
     }
   });
 
