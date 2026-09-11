@@ -14,6 +14,7 @@ const firebaseConfig = {
 };
 
 const ADMIN_PIN = "1234";
+const GRAMOS_POR_CAFE = 18; // 18g por cada bebida de café estándar
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
@@ -25,6 +26,7 @@ let inventario = [];
 let historialMovimientos = [];
 let listaBarraActual = [];
 let listaTraspasoActual = [];
+let listaIngresoActual = [];
 
 // Helper para formato de fecha único y estándar (DD/MM/YYYY)
 function getFechaHoy() {
@@ -56,6 +58,7 @@ onValue(inventoryRef, (snapshot) => {
     inventario = rawList.map(item => ({
       id: item.id || Date.now(),
       nombre: item.nombre || 'Insumo',
+      tipo: item.tipo || 'producto',
       stockDeposito: item.stockDeposito !== undefined ? item.stockDeposito : (item.stock || 0),
       stockCafeteria: item.stockCafeteria !== undefined ? item.stockCafeteria : 0
     }));
@@ -164,7 +167,6 @@ window.seleccionarPerfil = function(nombreUsuario, requierePin) {
   iniciarSesionUsuario(nombreUsuario);
 };
 
-// --- MODAL PIN ADMIN ---
 function mostrarModalPin() {
   if (document.getElementById('modalPinAdmin')) return;
 
@@ -263,6 +265,7 @@ window.cerrarSesion = function() {
     sessionStorage.removeItem('usuarioLogueado');
     listaBarraActual = [];
     listaTraspasoActual = [];
+    listaIngresoActual = [];
     mostrarPantallaPerfiles();
   }
 };
@@ -281,34 +284,38 @@ function guardarProductoNuevo() {
   if (sessionStorage.getItem('usuarioLogueado') !== 'Administrador') return;
 
   const nombreInput = document.getElementById('prodNombre');
+  const tipoInput = document.getElementById('prodTipo');
   const stockDepInput = document.getElementById('prodStockDep');
   const stockCafInput = document.getElementById('prodStockCaf');
 
   const nombre = nombreInput.value.trim();
+  const tipo = tipoInput ? tipoInput.value : 'producto';
   const stockDep = parseInt(stockDepInput.value) || 0;
   const stockCaf = parseInt(stockCafInput.value) || 0;
 
   if (!nombre) {
-    alert("Ingresa el nombre del producto.");
+    alert("Ingresa el nombre del ítem.");
     return;
   }
 
   const nuevoProd = {
     id: Date.now(),
     nombre: nombre,
+    tipo: tipo,
     stockDeposito: stockDep,
-    stockCafeteria: stockCaf
+    stockCafeteria: tipo === 'insumo' ? 0 : stockCaf
   };
 
   inventario.push(nuevoProd);
   set(inventoryRef, inventario);
 
   nombreInput.value = '';
+  if (tipoInput) tipoInput.value = 'producto';
   stockDepInput.value = 0;
   stockCafInput.value = 0;
 
   alert(`✅ "${nombre}" agregado correctamente.`);
-  irASeccion('tab-stock');
+  irASeccion(tipo === 'insumo' ? 'tab-insumos' : 'tab-stock');
 }
 
 window.eliminarProducto = function(id, nombre) {
@@ -320,7 +327,7 @@ window.eliminarProducto = function(id, nombre) {
   }
 };
 
-// --- OPERACIONES: TRASPASO, INGRESOS Y VENTAS BARRA (Detección automática de usuario) ---
+// --- OPERACIONES DE TURNO Y REGISTRO EN HISTORIAL ---
 
 function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   const usuario = sessionStorage.getItem('usuarioLogueado') || 'Usuario';
@@ -390,7 +397,7 @@ function agregarATraspaso() {
   const cantidadYaAgregada = existenteEnLista ? existenteEnLista.cantidad : 0;
 
   if ((cantidadYaAgregada + cantidad) > prod.stockDeposito) {
-    alert(`Stock insuficiente en Depósito de "${prod.nombre}". Solo quedan ${prod.stockDeposito} unids (ya tienes ${cantidadYaAgregada} en la lista).`);
+    alert(`Stock insuficiente en Depósito de "${prod.nombre}". Solo quedan ${prod.stockDeposito} unids.`);
     return;
   }
 
@@ -436,7 +443,8 @@ function confirmarTraspasoMultiple() {
   irASeccion('tab-stock');
 }
 
-function confirmarIngresoStock() {
+// --- INGRESO DE MERCADERÍA MÚLTIPLE ---
+function agregarAIngreso() {
   const selectDestino = document.getElementById('selectDestinoIngreso');
   const selectProd = document.getElementById('selectProductoIngreso');
   const cantInput = document.getElementById('cantIngreso');
@@ -448,19 +456,60 @@ function confirmarIngresoStock() {
   if (!idProd || cantidad <= 0) return;
 
   const prod = inventario.find(p => p.id === idProd);
-  if (prod) {
-    if (destino === 'deposito') prod.stockDeposito += cantidad;
-    else prod.stockCafeteria += cantidad;
+  if (!prod) return;
 
-    set(inventoryRef, inventario);
-    registrarMovimientoEnTurno('INGRESO', [{ nombre: prod.nombre, cantidad: cantidad }], destino === 'deposito' ? 'Ingreso Depósito' : 'Ingreso Cafetería');
-
-    alert(`✅ Ingreso registrado en ${destino.toUpperCase()}: +${cantidad} unids a "${prod.nombre}".`);
-    cantInput.value = 1;
-    irASeccion('tab-stock');
+  const existente = listaIngresoActual.find(it => it.id === idProd && it.destino === destino);
+  if (existente) {
+    existente.cantidad += cantidad;
+  } else {
+    listaIngresoActual.push({
+      id: prod.id,
+      nombre: prod.nombre,
+      cantidad: cantidad,
+      destino: destino,
+      origenTexto: destino === 'deposito' ? 'Ingreso Depósito' : 'Ingreso Cafetería'
+    });
   }
+
+  cantInput.value = 1;
+  renderListaIngreso();
 }
 
+window.quitarDeIngreso = function(idx) {
+  listaIngresoActual.splice(idx, 1);
+  renderListaIngreso();
+};
+
+function confirmarIngresoStockMultiple() {
+  if (listaIngresoActual.length === 0) return;
+
+  listaIngresoActual.forEach(item => {
+    const prod = inventario.find(p => p.id === item.id);
+    if (prod) {
+      if (item.destino === 'deposito') prod.stockDeposito += item.cantidad;
+      else prod.stockCafeteria += item.cantidad;
+    }
+  });
+
+  set(inventoryRef, inventario);
+
+  const grupos = {};
+  listaIngresoActual.forEach(it => {
+    if (!grupos[it.origenTexto]) grupos[it.origenTexto] = [];
+    grupos[it.origenTexto].push({ nombre: it.nombre, cantidad: it.cantidad });
+  });
+
+  Object.keys(grupos).forEach(origen => {
+    registrarMovimientoEnTurno('INGRESO', grupos[origen], origen);
+  });
+
+  listaIngresoActual = [];
+  alert(`✅ Ingresos múltiples guardados correctamente.`);
+  renderListaIngreso();
+  irASeccion('tab-stock');
+}
+
+// --- VENTAS & BARRA CON CÁLCULO AUTOMÁTICO DE CAFÉ ---
 function agregarABarra() {
   const select = document.getElementById('selectProductoBarra');
   const cantInput = document.getElementById('cantBarra');
@@ -496,6 +545,19 @@ window.quitarDeBarra = function(idx) {
   renderListaBarra();
 };
 
+function calcularGramosCafeConsumidos() {
+  let tazasCafe = 0;
+  listaBarraActual.forEach(item => {
+    const nombreLower = item.nombre.toLowerCase();
+    if (nombreLower.includes('cafe') || nombreLower.includes('café') || nombreLower.includes('espresso') || 
+        nombreLower.includes('latte') || nombreLower.includes('cappuccino') || nombreLower.includes('mocaccino') || 
+        nombreLower.includes('cortado') || nombreLower.includes('americano') || nombreLower.includes('macchiato')) {
+      tazasCafe += item.cantidad;
+    }
+  });
+  return tazasCafe * GRAMOS_POR_CAFE;
+}
+
 function confirmarConsumoBarra() {
   if (listaBarraActual.length === 0) return;
 
@@ -506,15 +568,50 @@ function confirmarConsumoBarra() {
     }
   });
 
+  const gramosTotales = calcularGramosCafeConsumidos();
+  if (gramosTotales > 0) {
+    const insumoCafe = inventario.find(p => p.tipo === 'insumo' && (p.nombre.toLowerCase().includes('café') || p.nombre.toLowerCase().includes('cafe') || p.nombre.toLowerCase().includes('grano')));
+    if (insumoCafe) {
+      insumoCafe.stockDeposito = Math.max(0, insumoCafe.stockDeposito - gramosTotales);
+    }
+  }
+
   set(inventoryRef, inventario);
-  registrarMovimientoEnTurno('VENTA_BARRA', listaBarraActual, 'Ventas Cafetería');
+  registrarMovimientoEnTurno('VENTA_BARRA', listaBarraActual, gramosTotales > 0 ? `Ventas Cafetería (-${gramosTotales}g de Café)` : 'Ventas Cafetería');
 
   listaBarraActual = [];
-  alert(`✅ Consumo registrado correctamente.`);
+  renderListaBarra();
+  alert(`✅ Consumo registrado correctamente.${gramosTotales > 0 ? ` Se descontaron ${gramosTotales}g de café en grano del depósito.` : ''}`);
   irASeccion('tab-stock');
 }
 
-// --- ANULACIÓN CON RESTRICCIÓN DE PERMISOS (Creador o Admin) ---
+// --- GESTIÓN DE INSUMOS (DEPÓSITO PURO) ---
+window.pasarInsumo = function(idInsumo) {
+  const prod = inventario.find(p => p.id === idInsumo);
+  if (!prod) return;
+
+  const cantidadStr = prompt(`¿Cuántas unidades/gramos de "${prod.nombre}" deseas pasar desde el depósito? (Stock actual: ${prod.stockDeposito})`, "1");
+  if (!cantidadStr) return;
+  const cantidad = parseInt(cantidadStr);
+
+  if (isNaN(cantidad) || cantidad <= 0) {
+    alert("Cantidad inválida.");
+    return;
+  }
+
+  if (cantidad > prod.stockDeposito) {
+    alert("No hay suficiente stock en el depósito.");
+    return;
+  }
+
+  prod.stockDeposito -= cantidad;
+  set(inventoryRef, inventario);
+  registrarMovimientoEnTurno('TRASPASO_INSUMO', [{ nombre: prod.nombre, cantidad: cantidad }], 'Depósito Insumos');
+
+  alert(`✅ Se pasaron ${cantidad} de "${prod.nombre}". Quedan ${prod.stockDeposito} en depósito.`);
+};
+
+// --- ANULACIÓN CON RESTRICCIÓN DE PERMISOS ---
 
 window.eliminarRegistroHistorial = function(key, idRegistro) {
   const reg = historialMovimientos.find(m => m.id === idRegistro || m._firebaseKey === key);
@@ -534,13 +631,15 @@ window.eliminarRegistroHistorial = function(key, idRegistro) {
   reg.items.forEach(item => {
     const prod = inventario.find(p => p.nombre === item.nombre);
     if (prod) {
-      if (reg.tipo === 'VENTA_BARRA') {
+      if (reg.tipo === 'VENTA_BARRA' || reg.tipo.includes('VENTA')) {
         prod.stockCafeteria += item.cantidad;
       } else if (reg.tipo === 'TRASPASO') {
         prod.stockDeposito += item.cantidad;
         prod.stockCafeteria = Math.max(0, prod.stockCafeteria - item.cantidad);
+      } else if (reg.tipo === 'TRASPASO_INSUMO') {
+        prod.stockDeposito += item.cantidad;
       } else if (reg.tipo === 'INGRESO') {
-        if (reg.origen === 'Ingreso Cafetería') prod.stockCafeteria = Math.max(0, prod.stockCafeteria - item.cantidad);
+        if (reg.origen && reg.origen.includes('Cafetería')) prod.stockCafeteria = Math.max(0, prod.stockCafeteria - item.cantidad);
         else prod.stockDeposito = Math.max(0, prod.stockDeposito - item.cantidad);
       }
     }
@@ -641,7 +740,7 @@ window.ejecutarBorradoHistorial = function() {
 };
 
 window.reiniciarStockTodo = function() {
-  if (confirm("⚠️ ¿Poner en 0 el stock de Depósito y Cafetería para todos los productos?")) {
+  if (confirm("⚠️ ¿Poner en 0 el stock de Depósito y Cafetería para todos los ítems?")) {
     inventario.forEach(p => { p.stockDeposito = 0; p.stockCafeteria = 0; });
     set(inventoryRef, inventario).then(() => {
       renderTodo();
@@ -654,17 +753,19 @@ window.reiniciarStockTodo = function() {
 
 function renderTodo() {
   renderInventario();
+  renderInsumos();
   renderSelectores();
   renderListaBarra();
   renderListaTraspaso();
+  renderListaIngreso();
   renderHistorial();
 }
 
 function renderInventario() {
-  const ordenados = ordenarInventario(inventario);
+  const productosVisibles = inventario.filter(p => p.tipo !== 'insumo');
+  const ordenados = ordenarInventario(productosVisibles);
   const esAdmin = sessionStorage.getItem('usuarioLogueado') === 'Administrador';
 
-  // 1. CAFETERÍA / VITRINA (Arriba)
   const tbodyCaf = document.getElementById('tablaCafeteria');
   if (tbodyCaf) {
     tbodyCaf.innerHTML = '';
@@ -679,7 +780,6 @@ function renderInventario() {
     });
   }
 
-  // 2. DEPÓSITO (Abajo)
   const tbodyDep = document.getElementById('tablaDeposito');
   if (tbodyDep) {
     tbodyDep.innerHTML = '';
@@ -699,16 +799,15 @@ function renderInventario() {
     });
   }
 
-  // 3. INVENTARIO TOTAL
   const tbodyTot = document.getElementById('tablaTotal');
   if (tbodyTot) {
     tbodyTot.innerHTML = '';
-    ordenados.forEach(prod => {
+    ordenarInventario(inventario).forEach(prod => {
       const total = prod.stockDeposito + prod.stockCafeteria;
       const tr = document.createElement('tr');
       tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
       tr.innerHTML = `
-        <td class="py-3 px-2 font-semibold text-slate-800">${prod.nombre}</td>
+        <td class="py-3 px-2 font-semibold text-slate-800">${prod.nombre} ${prod.tipo === 'insumo' ? '<span class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">Insumo</span>' : ''}</td>
         <td class="py-3 px-2 text-center text-slate-500 font-mono">${prod.stockDeposito}</td>
         <td class="py-3 px-2 text-center text-sky-600 font-mono">${prod.stockCafeteria}</td>
         <td class="py-3 px-2 text-right font-extrabold text-slate-900 font-mono">${total}</td>
@@ -717,7 +816,6 @@ function renderInventario() {
     });
   }
 
-  // Contadores Header
   const elTotalProd = document.getElementById('statTotalProductos');
   if (elTotalProd) elTotalProd.textContent = inventario.length;
 
@@ -727,6 +825,34 @@ function renderInventario() {
     const movsHoy = historialMovimientos.filter(m => m.fechaCorta === hoyStr);
     elTotalPases.textContent = movsHoy.length;
   }
+}
+
+function renderInsumos() {
+  const tbodyIns = document.getElementById('tablaInsumos');
+  if (!tbodyIns) return;
+
+  const insumos = ordenarInventario(inventario.filter(p => p.tipo === 'insumo'));
+  const esAdmin = sessionStorage.getItem('usuarioLogueado') === 'Administrador';
+
+  tbodyIns.innerHTML = '';
+  if (insumos.length === 0) {
+    tbodyIns.innerHTML = `<tr><td colspan="3" class="text-center text-slate-400 py-4 text-xs italic">No hay insumos registrados.</td></tr>`;
+    return;
+  }
+
+  insumos.forEach(ins => {
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+    tr.innerHTML = `
+      <td class="py-3 px-3 font-semibold text-slate-800">${ins.nombre}</td>
+      <td class="py-3 px-3 text-center text-slate-700 font-mono font-bold">${ins.stockDeposito}</td>
+      <td class="py-3 px-3 text-right flex justify-end gap-2">
+        <button onclick="pasarInsumo(${ins.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-2.5 py-1 rounded font-medium transition">🔄 Pasar</button>
+        ${esAdmin ? `<button onclick="eliminarProducto(${ins.id}, '${ins.nombre}')" class="text-rose-500 hover:text-rose-700 bg-rose-50 p-1 rounded transition">🗑️</button>` : ''}
+      </td>
+    `;
+    tbodyIns.appendChild(tr);
+  });
 }
 
 function renderSelectores() {
@@ -740,9 +866,10 @@ function renderSelectores() {
   selBarra.innerHTML = '';
   selIngreso.innerHTML = '';
 
-  const ordenados = ordenarInventario(inventario);
+  const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
+  const todosOrdenados = ordenarInventario(inventario);
 
-  ordenados.forEach(prod => {
+  productosVisibles.forEach(prod => {
     const optT = document.createElement('option');
     optT.value = prod.id;
     optT.textContent = `${prod.nombre} (Depósito: ${prod.stockDeposito})`;
@@ -754,10 +881,12 @@ function renderSelectores() {
     optB.textContent = `${prod.nombre} (Cafetería: ${prod.stockCafeteria})`;
     if (prod.stockCafeteria <= 0) optB.disabled = true;
     selBarra.appendChild(optB);
+  });
 
+  todosOrdenados.forEach(prod => {
     const optI = document.createElement('option');
     optI.value = prod.id;
-    optI.textContent = prod.nombre;
+    optI.textContent = `${prod.nombre} ${prod.tipo === 'insumo' ? '[Insumo]' : ''}`;
     selIngreso.appendChild(optI);
   });
 }
@@ -766,6 +895,8 @@ function renderListaBarra() {
   const lista = document.getElementById('listaBarraActual');
   const btnConf = document.getElementById('btnConfirmarBarra');
   const resCount = document.getElementById('resumenBarraCount');
+  const infoCafe = document.getElementById('infoCafeDescontado');
+  const spanGramos = document.getElementById('gramosCafeCalculados');
 
   if (!lista) return;
   lista.innerHTML = '';
@@ -774,6 +905,7 @@ function renderListaBarra() {
     lista.innerHTML = `<p class="text-xs text-slate-500 italic py-2">Ningún producto agregado aún.</p>`;
     if (btnConf) btnConf.disabled = true;
     if (resCount) resCount.textContent = '0 ítems';
+    if (infoCafe) infoCafe.classList.add('hidden');
     return;
   }
 
@@ -795,6 +927,14 @@ function renderListaBarra() {
   });
 
   if (resCount) resCount.textContent = `${listaBarraActual.length} tipo(s) | Total: ${totalUnidades}`;
+
+  const gramosCalculados = calcularGramosCafeConsumidos();
+  if (gramosCalculados > 0 && infoCafe && spanGramos) {
+    spanGramos.textContent = `${gramosCalculados}g`;
+    infoCafe.classList.remove('hidden');
+  } else if (infoCafe) {
+    infoCafe.classList.add('hidden');
+  }
 }
 
 function renderListaTraspaso() {
@@ -832,7 +972,42 @@ function renderListaTraspaso() {
   if (resCount) resCount.textContent = `${listaTraspasoActual.length} tipo(s) | Total: ${totalUnidades}`;
 }
 
-// --- HISTORIAL AGRUPADO POR DÍA CON VALIDACIÓN DE ELIMINACIÓN ---
+function renderListaIngreso() {
+  const lista = document.getElementById('listaIngresoActual');
+  const btnConf = document.getElementById('btnGuardarIngreso');
+  const resCount = document.getElementById('resumenIngresoCount');
+
+  if (!lista) return;
+  lista.innerHTML = '';
+
+  if (listaIngresoActual.length === 0) {
+    lista.innerHTML = `<p class="text-xs text-slate-400 italic py-2">Ningún ítem agregado para ingreso aún.</p>`;
+    if (btnConf) btnConf.disabled = true;
+    if (resCount) resCount.textContent = '0 ítems';
+    return;
+  }
+
+  if (btnConf) btnConf.disabled = false;
+  let totalUnidades = 0;
+
+  listaIngresoActual.forEach((item, idx) => {
+    totalUnidades += item.cantidad;
+    const div = document.createElement('div');
+    div.className = 'flex justify-between items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs';
+    div.innerHTML = `
+      <span class="text-slate-800 font-medium">${item.nombre} <span class="text-[10px] text-slate-500">(${item.destino})</span></span>
+      <div class="flex items-center gap-2">
+        <span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded border border-emerald-200">+${item.cantidad}</span>
+        <button type="button" onclick="quitarDeIngreso(${idx})" class="text-slate-400 hover:text-rose-600 font-bold px-1">✕</button>
+      </div>
+    `;
+    lista.appendChild(div);
+  });
+
+  if (resCount) resCount.textContent = `${listaIngresoActual.length} tipo(s) | Total: ${totalUnidades}`;
+}
+
+// --- HISTORIAL AGRUPADO POR DÍA CON RENDERIZADO DE TARJETAS EXACTO ---
 
 function renderHistorial() {
   const contenedor = document.getElementById('contenedorHistorial');
@@ -872,12 +1047,12 @@ function renderHistorial() {
       const card = document.createElement('div');
       card.className = 'bg-white border border-slate-200 rounded-xl p-3 space-y-2 shadow-sm text-xs';
 
-      const itemsHTML = reg.items.map(it => `
+      const itemsHTML = reg.items ? reg.items.map(it => `
         <div class="flex justify-between items-center py-1 border-b border-slate-100 last:border-0">
           <span>${it.nombre} ${it.hora ? `<span class="text-[10px] text-slate-400">(${it.hora})</span>` : ''}</span>
           <span class="font-bold ${reg.tipo === 'INGRESO' ? 'text-emerald-600' : 'text-sky-600'}">${reg.tipo === 'INGRESO' ? '+' : '-'}${it.cantidad}</span>
         </div>
-      `).join('');
+      `).join('') : '';
 
       const esCreador = reg.usuario === usuarioActual;
       const puedeBorrar = esAdmin || esCreador;
@@ -900,7 +1075,7 @@ function renderHistorial() {
   });
 }
 
-// Inicialización de la aplicación
+// Inicialización de la aplicación y manejo de pestañas
 function iniciarApp() {
   verificarSesion();
 
@@ -914,7 +1089,8 @@ function iniciarApp() {
     'tab-barra': 'Ventas & Barra (Cafetería)',
     'tab-ingreso': 'Ingreso de Mercadería',
     'tab-nuevo_prod': 'Nuevo Producto (Admin)',
-    'tab-historial': 'Historial de Movimientos'
+    'tab-historial': 'Historial de Movimientos',
+    'tab-insumos': 'Insumos y Depósito'
   };
 
   radioTabs.forEach(radio => {
@@ -933,7 +1109,8 @@ function iniciarApp() {
   document.getElementById('btnConfirmarTraspaso')?.addEventListener('click', confirmarTraspasoMultiple);
   document.getElementById('btnAgregarABarra')?.addEventListener('click', agregarABarra);
   document.getElementById('btnConfirmarBarra')?.addEventListener('click', confirmarConsumoBarra);
-  document.getElementById('btnGuardarIngreso')?.addEventListener('click', confirmarIngresoStock);
+  document.getElementById('btnAgregarAIngreso')?.addEventListener('click', agregarAIngreso);
+  document.getElementById('btnGuardarIngreso')?.addEventListener('click', confirmarIngresoStockMultiple);
 }
 
 // Ejecutar al cargar la página
