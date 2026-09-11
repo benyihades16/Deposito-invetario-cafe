@@ -785,11 +785,14 @@ function renderInventario() {
   const tbodyDep = document.getElementById('tablaDeposito');
   if (tbodyDep) {
     tbodyDep.innerHTML = '';
-    ordenados.forEach(prod => {
+    ordenarInventario(inventario).forEach(prod => {
       const tr = document.createElement('tr');
       tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
       tr.innerHTML = `
-        <td class="py-3 px-2 font-semibold text-slate-800">${prod.nombre}</td>
+        <td class="py-3 px-2 font-semibold text-slate-800">
+          ${prod.nombre} 
+          ${prod.tipo === 'insumo' ? '<span class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded ml-1">Insumo</span>' : ''}
+        </td>
         <td class="py-3 px-2 text-center text-slate-700 font-mono font-bold">${prod.stockDeposito}</td>
         ${esAdmin ? `
           <td class="py-3 px-2 text-center thAdminAcciones">
@@ -871,16 +874,16 @@ function renderSelectores() {
   const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
   const todosOrdenados = ordenarInventario(inventario);
 
-  // 1. TRASPASO: Ahora usa todosOrdenados para que aparezcan tanto productos como insumos limpios
+  // TRASPASO: Muestra todos los ítems (incluyendo insumos) para poder descontarlos del depósito
   todosOrdenados.forEach(prod => {
     const optT = document.createElement('option');
     optT.value = prod.id;
-    optT.textContent = `${prod.nombre} (Depósito: ${prod.stockDeposito})`;
+    optT.textContent = `${prod.nombre} (Depósito: ${prod.stockDeposito}) ${prod.tipo === 'insumo' ? '[Insumo]' : ''}`;
     if (prod.stockDeposito <= 0) optT.disabled = true;
     selTraspaso.appendChild(optT);
   });
 
-  // 2. BARRA: Se mantiene solo con productos de vitrina visibles
+  // BARRA: Exclusivo productos de vitrina/cafetería
   productosVisibles.forEach(prod => {
     const optB = document.createElement('option');
     optB.value = prod.id;
@@ -889,7 +892,7 @@ function renderSelectores() {
     selBarra.appendChild(optB);
   });
 
-  // 3. INGRESO: Mantiene todos los ítems con su etiqueta de insumo
+  // INGRESO: Todos los ítems
   todosOrdenados.forEach(prod => {
     const optI = document.createElement('option');
     optI.value = prod.id;
@@ -897,7 +900,6 @@ function renderSelectores() {
     selIngreso.appendChild(optI);
   });
 }
-
 function renderListaBarra() {
   const lista = document.getElementById('listaBarraActual');
   const btnConf = document.getElementById('btnConfirmarBarra');
