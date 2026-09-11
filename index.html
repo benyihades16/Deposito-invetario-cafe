@@ -19,6 +19,7 @@
 #tab-transferencia:checked ~ main #sec-transferencia { display: block; }
 #tab-barra:checked ~ main #sec-barra { display: block; }
 #tab-ingreso:checked ~ main #sec-ingreso { display: block; }
+#tab-insumos:checked ~ main #sec-insumos { display: block; }
 #tab-nuevo_prod:checked ~ main #sec-nuevo_prod { display: block; }
 #tab-historial:checked ~ main #sec-historial { display: block; }
 </style>
@@ -32,6 +33,7 @@
 <input type="radio" name="seccion" id="tab-transferencia" class="control-hidden">
 <input type="radio" name="seccion" id="tab-barra" class="control-hidden">
 <input type="radio" name="seccion" id="tab-ingreso" class="control-hidden">
+<input type="radio" name="seccion" id="tab-insumos" class="control-hidden">
 <input type="radio" name="seccion" id="tab-nuevo_prod" class="control-hidden">
 <input type="radio" name="seccion" id="tab-historial" class="control-hidden">
 
@@ -60,10 +62,13 @@
 <span>🔄</span> Traspaso a Cafetería
 </label>
 <label for="tab-barra" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
-<span>☕</span> Ventas & Barra (Cafetería)
+<span>☕</span> Ventas & Barra (Café & Más)
 </label>
 <label for="tab-ingreso" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
 <span>📥</span> Ingreso de Mercadería
+</label>
+<label for="tab-insumos" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
+<span>🧪</span> Insumos y Depósito Puro
 </label>
 <label for="tab-nuevo_prod" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
 <span>🔒</span> Nuevo Producto (Admin)
@@ -75,7 +80,7 @@
 </div>
 
 <div class="border-t border-slate-800 pt-4 text-xs text-slate-500 text-center">
-Control de Depósito v6.0
+Control de Depósito v7.0
 </div>
 </aside>
 
@@ -116,7 +121,7 @@ Control de Depósito v6.0
 </div>
 </div>
 
-<!-- TABLA CAFETERÍA / VITRINA -->
+<!-- TABLA CAFETERÍA / VITRINA (Solo productos visibles) -->
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
 <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-sky-50/50">
 <h2 class="font-bold text-slate-900 text-sm flex items-center gap-2">
@@ -136,7 +141,7 @@ Control de Depósito v6.0
 </div>
 </div>
 
-<!-- TABLA DEPÓSITO -->
+<!-- TABLA DEPÓSITO (Solo productos visibles) -->
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
 <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
 <h2 class="font-bold text-slate-900 text-sm flex items-center gap-2">
@@ -170,7 +175,7 @@ Control de Depósito v6.0
 <table class="w-full text-left text-sm">
 <thead class="bg-slate-50 text-slate-500 text-xs uppercase border-b border-slate-200">
 <tr>
-<th class="py-3 px-3 font-semibold">Producto</th>
+<th class="py-3 px-3 font-semibold">Producto / Ítem</th>
 <th class="py-3 px-3 text-center font-semibold">Depósito</th>
 <th class="py-3 px-3 text-center font-semibold">Cafetería</th>
 <th class="py-3 px-3 text-right font-semibold">Total General</th>
@@ -189,12 +194,12 @@ Control de Depósito v6.0
 <h2 class="text-base font-bold text-indigo-400 flex items-center gap-2">
 <span>🔄</span> Traspaso (Depósito ➔ Cafetería)
 </h2>
-<p class="text-xs text-slate-400 mt-0.5">Mueve insumos desde el depósito hacia la barra/vitrina</p>
+<p class="text-xs text-slate-400 mt-0.5">Mueve insumos o productos hacia la barra/vitrina en lote</p>
 </div>
 
 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
 <div class="sm:col-span-6">
-<label class="block text-xs font-medium text-slate-300 mb-1">Producto en Depósito</label>
+<label class="block text-xs font-medium text-slate-300 mb-1">Seleccionar Ítem</label>
 <select id="selectProductoTraspaso" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none"></select>
 </div>
 <div class="sm:col-span-3">
@@ -222,19 +227,19 @@ Control de Depósito v6.0
 </div>
 </section>
 
-<!-- 4. SECCIÓN: VENTAS & BARRA -->
+<!-- 4. SECCIÓN: VENTAS & BARRA (CON DESCUENTO AUTOMÁTICO DE CAFÉ) -->
 <section id="sec-barra" class="seccion-vista">
 <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-lg border border-slate-800 space-y-4">
 <div class="border-b border-slate-800 pb-3">
 <h2 class="text-base font-bold text-sky-400 flex items-center gap-2">
 <span>☕</span> Registrar Consumo / Ventas en Barra
 </h2>
-<p class="text-xs text-slate-400 mt-0.5">Descuenta insumos del stock de Cafetería</p>
+<p class="text-xs text-slate-400 mt-0.5">Descuenta bebidas y calcula automáticamente el café en gramos consumido</p>
 </div>
 
 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
 <div class="sm:col-span-6">
-<label class="block text-xs font-medium text-slate-300 mb-1">Producto en Cafetería</label>
+<label class="block text-xs font-medium text-slate-300 mb-1">Bebida o Producto</label>
 <select id="selectProductoBarra" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none"></select>
 </div>
 <div class="sm:col-span-3">
@@ -249,59 +254,109 @@ Control de Depósito v6.0
 </div>
 
 <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
-<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Lista de Consumo:</p>
+<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Multi-lista de Consumo:</p>
 <div id="listaBarraActual" class="space-y-2 max-h-48 overflow-y-auto"></div>
+
+<!-- Indicador de café descontado en tiempo real -->
+<div id="infoCafeDescontado" class="mt-3 bg-amber-950/40 border border-amber-800/60 p-2.5 rounded-lg text-xs text-amber-300 hidden">
+  ☕ Se descontarán aprox. <span id="gramosCafeCalculados" class="font-bold">0g</span> de café en grano del depósito.
+</div>
 
 <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center">
 <span id="resumenBarraCount" class="text-xs text-slate-400">0 ítems</span>
 <button type="button" id="btnConfirmarBarra" class="bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-bold px-5 py-2.5 rounded-lg transition text-sm shadow-md active:scale-95" disabled>
-✅ Registrar Consumo
+✅ Registrar Consumo Múltiple
 </button>
 </div>
 </div>
 </div>
 </section>
 
-<!-- 5. SECCIÓN: INGRESO DE MERCADERÍA -->
+<!-- 5. SECCIÓN: INGRESO DE MERCADERÍA MÚLTIPLE -->
 <section id="sec-ingreso" class="seccion-vista">
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
 <div class="border-b border-slate-100 pb-3">
 <h2 class="text-base font-bold text-emerald-600 flex items-center gap-2">
-<span>📥</span> Registrar Ingreso de Mercadería
+<span>📥</span> Registrar Ingreso de Mercadería (Múltiple)
 </h2>
+<p class="text-xs text-slate-500">Ideal para panadería u otros lotes que llegan juntos</p>
 </div>
 
 <div class="space-y-3">
 <div>
-<label class="block text-xs font-medium text-slate-700 mb-1">Ubicación Destino</label>
+<label class="block text-xs font-medium text-slate-700 mb-1">Ubicación Destino General</label>
 <select id="selectDestinoIngreso" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
 <option value="deposito">Depósito</option>
 <option value="cafeteria">Cafetería / Vitrina</option>
 </select>
 </div>
-<div>
-<label class="block text-xs font-medium text-slate-700 mb-1">Producto</label>
+
+<div class="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2">
+<div class="sm:col-span-6">
+<label class="block text-xs font-medium text-slate-700 mb-1">Producto / Insumo</label>
 <select id="selectProductoIngreso" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none"></select>
 </div>
-<div>
-<label class="block text-xs font-medium text-slate-700 mb-1">Cantidad Ingresada</label>
+<div class="sm:col-span-3">
+<label class="block text-xs font-medium text-slate-700 mb-1">Cantidad</label>
 <input type="number" id="cantIngreso" min="1" value="1" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
 </div>
-<button type="button" id="btnGuardarIngreso" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition text-sm shadow active:scale-95">
-📥 Guardar Ingreso
+<div class="sm:col-span-3 flex items-end">
+<button type="button" id="btnAgregarAIngreso" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-2 rounded-lg transition text-sm flex items-center justify-center gap-1 active:scale-95">
+➕ Agregar
 </button>
+</div>
+</div>
+
+<div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+<p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Lista de Ingreso:</p>
+<div id="listaIngresoActual" class="space-y-2 max-h-48 overflow-y-auto"></div>
+
+<div class="mt-4 pt-3 border-t border-slate-200 flex justify-between items-center">
+<span id="resumenIngresoCount" class="text-xs text-slate-500">0 ítems</span>
+<button type="button" id="btnGuardarIngreso" class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold px-5 py-2.5 rounded-lg transition text-sm shadow-md active:scale-95" disabled>
+✅ Confirmar Ingreso Múltiple
+</button>
+</div>
+</div>
 </div>
 </div>
 </section>
 
-<!-- 6. SECCIÓN: NUEVO PRODUCTO Y MANTENIMIENTO (ADMIN) -->
+<!-- 6. SECCIÓN: INSUMOS Y DEPÓSITO PURO (Solo insumos: llegan 10, pasan 3, quedan 7) -->
+<section id="sec-insumos" class="seccion-vista space-y-5">
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+<div class="border-b border-slate-100 pb-3 flex justify-between items-center">
+<div>
+<h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+<span>🧪</span> Gestión de Insumos (Depósito Puro)
+</h2>
+<p class="text-xs text-slate-500 mt-0.5">Control de materias primas que no se muestran en la vitrina de la cafetería</p>
+</div>
+</div>
+
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm">
+<thead class="bg-slate-100 text-slate-500 text-xs uppercase border-b border-slate-200">
+<tr>
+<th class="py-3 px-3 font-semibold">Insumo</th>
+<th class="py-3 px-3 text-center font-semibold">Stock Depósito</th>
+<th class="py-3 px-3 text-right font-semibold thAdminAcciones hidden">Acción</th>
+</tr>
+</thead>
+<tbody id="tablaInsumos" class="divide-y divide-slate-100"></tbody>
+</table>
+</div>
+</div>
+</section>
+
+<!-- 7. SECCIÓN: NUEVO PRODUCTO / INSUMO Y MANTENIMIENTO (ADMIN) -->
 <section id="sec-nuevo_prod" class="seccion-vista">
 <div id="content-nuevo_prod" class="space-y-4">
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
 <div class="border-b border-slate-100 pb-3 flex justify-between items-start">
 <div>
 <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-<span>🔒</span> Registrar Nuevo Producto
+<span>🔒</span> Registrar Nuevo Ítem
 </h2>
 <p class="text-xs text-slate-500 mt-0.5">Exclusivo Administrador</p>
 </div>
@@ -309,9 +364,18 @@ Control de Depósito v6.0
 
 <div class="space-y-3">
 <div>
-<label class="block text-xs font-medium text-slate-700 mb-1">Nombre del Producto</label>
-<input type="text" id="prodNombre" placeholder="Ej. Leche Entera" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
+<label class="block text-xs font-medium text-slate-700 mb-1">Nombre del Ítem</label>
+<input type="text" id="prodNombre" placeholder="Ej. Café en Grano / Galletas / Espresso" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
 </div>
+
+<div>
+<label class="block text-xs font-medium text-slate-700 mb-1">Tipo de Ítem</label>
+<select id="prodTipo" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
+<option value="producto">Producto (Visible en Vitrina y Ventas)</option>
+<option value="insumo">Insumo (Solo Depósito, no visible en vitrina)</option>
+</select>
+</div>
+
 <div class="grid grid-cols-2 gap-3">
 <div>
 <label class="block text-xs font-medium text-slate-700 mb-1">Stock Inicial Depósito</label>
@@ -323,14 +387,14 @@ Control de Depósito v6.0
 </div>
 </div>
 <button type="button" id="btnGuardarNuevoProd" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5 rounded-lg transition text-sm shadow active:scale-95">
-💾 Guardar Producto
+💾 Guardar Ítem
 </button>
 </div>
 </div>
 </div>
 </section>
 
-<!-- 7. SECCIÓN: HISTORIAL DE MOVIMIENTOS -->
+<!-- 8. SECCIÓN: HISTORIAL DE MOVIMIENTOS -->
 <section id="sec-historial" class="seccion-vista">
 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
 <div class="flex justify-between items-center border-b border-slate-100 pb-3">
