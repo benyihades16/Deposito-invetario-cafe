@@ -871,13 +871,17 @@ function renderSelectores() {
   const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
   const todosOrdenados = ordenarInventario(inventario);
 
-  productosVisibles.forEach(prod => {
+  // 1. TRASPASO: Ahora usa todosOrdenados para que aparezcan tanto productos como insumos limpios
+  todosOrdenados.forEach(prod => {
     const optT = document.createElement('option');
     optT.value = prod.id;
     optT.textContent = `${prod.nombre} (Depósito: ${prod.stockDeposito})`;
     if (prod.stockDeposito <= 0) optT.disabled = true;
     selTraspaso.appendChild(optT);
+  });
 
+  // 2. BARRA: Se mantiene solo con productos de vitrina visibles
+  productosVisibles.forEach(prod => {
     const optB = document.createElement('option');
     optB.value = prod.id;
     optB.textContent = `${prod.nombre} (Cafetería: ${prod.stockCafeteria})`;
@@ -885,6 +889,7 @@ function renderSelectores() {
     selBarra.appendChild(optB);
   });
 
+  // 3. INGRESO: Mantiene todos los ítems con su etiqueta de insumo
   todosOrdenados.forEach(prod => {
     const optI = document.createElement('option');
     optI.value = prod.id;
