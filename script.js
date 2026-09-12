@@ -770,13 +770,41 @@ function renderInventario() {
 
   const tbodyCaf = document.getElementById('tablaCafeteria');
   if (tbodyCaf) {
-    tbodyCaf.innerHTML = '';
+   tbodyCaf.innerHTML = '';
+    const hoyStr = getFechaHoy();
+    
     ordenados.forEach(prod => {
+      let ventasHoy = 0;
+      let entradasHoy = 0;
+
+      // Analizamos el historial del día actual para este producto
+      historialMovimientos.forEach(m => {
+        if (m.fechaCorta === hoyStr && m.items) {
+          m.items.forEach(it => {
+            if (it.nombre === prod.nombre) {
+              if (m.tipo === 'VENTA_BARRA' || m.tipo.includes('VENTA')) {
+                ventasHoy += it.cantidad;
+              } else if (m.tipo === 'TRASPASO') {
+                entradasHoy += it.cantidad;
+              } else if (m.tipo === 'INGRESO' && m.origen && m.origen.includes('Cafetería')) {
+                entradasHoy += it.cantidad;
+              }
+            }
+          });
+        }
+      });
+
+      const stockActual = prod.stockCafeteria;
+      // Fórmula: Stock Anterior = Stock Actual - Entradas de hoy + Ventas de hoy
+      const stockAnterior = Math.max(0, stockActual - entradasHoy + ventasHoy);
+
       const tr = document.createElement('tr');
       tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
       tr.innerHTML = `
         <td class="py-3 px-2 font-semibold text-slate-800">${prod.nombre}</td>
-        <td class="py-3 px-2 text-center text-sky-700 font-mono font-bold">${prod.stockCafeteria}</td>
+        <td class="py-3 px-2 text-center text-slate-600 font-mono">${stockAnterior}</td>
+        <td class="py-3 px-2 text-center text-sky-700 font-mono font-bold">${stockActual}</td>
+        <td class="py-3 px-2 text-center text-emerald-600 font-mono font-bold">${ventasHoy > 0 ? `${ventasHoy}` : '0'}</td>
       `;
       tbodyCaf.appendChild(tr);
     });
