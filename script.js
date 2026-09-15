@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue, set, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-// Configuración de Firebase[cite: 5]
+// Configuración de Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyAivVsjrsxrvzaqANN9FMBNRNVX4puHo3c",
   authDomain: "control-deposito26.firebaseapp.com",
@@ -14,7 +14,7 @@ const firebaseConfig = {
 };
 
 const ADMIN_PIN = "1234";
-const GRAMOS_POR_CAFE = 18; // 18g por cada bebida de café estándar[cite: 5]
+const GRAMOS_POR_CAFE = 18; // 18g por cada bebida de café estándar
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
@@ -28,7 +28,7 @@ let listaBarraActual = [];
 let listaTraspasoActual = [];
 let listaIngresoActual = [];
 
-// Helper para formato de fecha único y estándar (DD/MM/YYYY)[cite: 5]
+// Helper para formato de fecha único y estándar (DD/MM/YYYY)
 function getFechaHoy() {
   const d = new Date();
   const dia = String(d.getDate()).padStart(2, '0');
@@ -37,7 +37,7 @@ function getFechaHoy() {
   return `${dia}/${mes}/${anio}`;
 }
 
-// FUNCIÓN DE ORDENAMIENTO: Leches primero, luego A-Z[cite: 5]
+// FUNCIÓN DE ORDENAMIENTO: Leches primero, luego A-Z
 function ordenarInventario(lista) {
   return [...lista].sort((a, b) => {
     const aEsLeche = a.nombre.toLowerCase().includes('leche');
@@ -50,7 +50,7 @@ function ordenarInventario(lista) {
   });
 }
 
-// Escuchar cambios de inventario en vivo[cite: 5]
+// Escuchar cambios de inventario en vivo
 onValue(inventoryRef, (snapshot) => {
   const data = snapshot.val();
   if (data) {
@@ -68,7 +68,7 @@ onValue(inventoryRef, (snapshot) => {
   renderTodo();
 });
 
-// Escuchar cambios de historial en vivo[cite: 5]
+// Escuchar cambios de historial en vivo
 onValue(historyRef, (snapshot) => {
   const data = snapshot.val();
   if (data) {
@@ -82,7 +82,7 @@ onValue(historyRef, (snapshot) => {
   renderTodo();
 });
 
-// --- GESTIÓN DE PERFILES Y SESIÓN ---[cite: 5]
+// --- GESTIÓN DE PERFILES Y SESIÓN ---
 
 function verificarSesion() {
   const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
@@ -272,7 +272,7 @@ function irASeccion(tabId) {
   }
 }
 
-// --- ACCIONES DE PRODUCTOS Y STOCK ---[cite: 5]
+// --- ACCIONES DE PRODUCTOS Y STOCK ---
 
 function guardarProductoNuevo() {
   if (sessionStorage.getItem('usuarioLogueado') !== 'Administrador') return;
@@ -321,7 +321,7 @@ window.eliminarProducto = function(id, nombre) {
   }
 };
 
-// --- OPERACIONES DE TURNO Y REGISTRO EN HISTORIAL ---[cite: 5]
+// --- OPERACIONES DE TURNO Y REGISTRO EN HISTORIAL ---
 
 function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   const usuario = sessionStorage.getItem('usuarioLogueado') || 'Usuario';
@@ -377,7 +377,7 @@ function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   }
 }
 
-// --- TRASPASOS MÚLTIPLES ---[cite: 5]
+// --- TRASPASOS MÚLTIPLES ---
 function agregarATraspaso() {
   const select = document.getElementById('selectProductoTraspaso');
   const cantInput = document.getElementById('cantTraspaso');
@@ -442,7 +442,7 @@ function confirmarTraspasoMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- INGRESO DE MERCADERÍA MÚLTIPLE ---[cite: 5]
+// --- INGRESO DE MERCADERÍA MÚLTIPLE ---
 function agregarAIngreso() {
   const selectDestino = document.getElementById('selectDestinoIngreso');
   const selectProd = document.getElementById('selectProductoIngreso');
@@ -508,7 +508,7 @@ function confirmarIngresoStockMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- VENTAS & BARRA CON CÁLCULO AUTOMÁTICO DE CAFÉ ---[cite: 5]
+// --- VENTAS & BARRA CON CÁLCULO AUTOMÁTICO DE CAFÉ ---
 function agregarABarra() {
   const select = document.getElementById('selectProductoBarra');
   const cantInput = document.getElementById('cantBarra');
@@ -584,7 +584,7 @@ function confirmarConsumoBarra() {
   irASeccion('tab-stock');
 }
 
-// --- GESTIÓN DE INSUMOS (DEPÓSITO PURO) ---[cite: 5]
+// --- GESTIÓN DE INSUMOS (DEPÓSITO PURO) ---
 window.pasarInsumo = function(idInsumo) {
   const prod = inventario.find(p => p.id === idInsumo);
   if (!prod) return;
@@ -610,7 +610,7 @@ window.pasarInsumo = function(idInsumo) {
   alert(`✅ Se pasaron ${cantidad} de "${prod.nombre}". Quedan ${prod.stockDeposito} en depósito.`);
 };
 
-// --- ANULACIÓN CON RESTRICCIÓN DE PERMISOS ---[cite: 5]
+// --- ANULACIÓN CON RESTRICCIÓN DE PERMISOS ---
 window.eliminarRegistroHistorial = function(key, idRegistro) {
   const reg = historialMovimientos.find(m => m.id === idRegistro || m._firebaseKey === key);
   if (!reg) return;
@@ -648,7 +648,7 @@ window.eliminarRegistroHistorial = function(key, idRegistro) {
   alert("✅ Registro anulado y stock reajustado.");
 };
 
-// --- MANTENIMIENTO ADMIN ---[cite: 5]
+// --- MANTENIMIENTO ADMIN ---
 function renderPanelMantenimiento(nombreUsuario) {
   let panel = document.getElementById('panelMantenimientoAdmin');
 
@@ -746,7 +746,7 @@ window.reiniciarStockTodo = function() {
   }
 };
 
-// --- RENDERIZADO GENERAL Y TURNOS ESPECÍFICOS ---[cite: 5]
+// --- RENDERIZADO GENERAL Y TURNOS ESPECÍFICOS ---
 
 function renderTodo() {
   renderInventario();
@@ -794,12 +794,12 @@ function renderInventario() {
       const stockAnterior = Math.max(0, stockActual - entradasHoy + ventasHoy);
 
       const tr = document.createElement('tr');
-      tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+      tr.className = 'hover:bg-slate-900/50 transition border-b border-slate-800/50';
       tr.innerHTML = `
-        <td class="py-3 px-2 font-semibold text-slate-800">${prod.nombre}</td>
-        <td class="py-3 px-2 text-center text-slate-600 font-mono">${stockAnterior}</td>
-        <td class="py-3 px-2 text-center text-sky-700 font-mono font-bold">${stockActual}</td>
-        <td class="py-3 px-2 text-center text-emerald-600 font-mono font-bold">${ventasHoy > 0 ? `${ventasHoy}` : '0'}</td>
+        <td class="py-3 px-2 font-semibold text-slate-200">${prod.nombre}</td>
+        <td class="py-3 px-2 text-center text-slate-400 font-mono">${stockAnterior}</td>
+        <td class="py-3 px-2 text-center text-sky-400 font-mono font-bold">${stockActual}</td>
+        <td class="py-3 px-2 text-center text-emerald-400 font-mono font-bold">${ventasHoy > 0 ? `${ventasHoy}` : '0'}</td>
       `;
       tbodyCaf.appendChild(tr);
     });
@@ -810,16 +810,16 @@ function renderInventario() {
     tbodyDep.innerHTML = '';
     ordenarInventario(inventario).forEach(prod => {
       const tr = document.createElement('tr');
-      tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+      tr.className = 'hover:bg-slate-900/50 transition border-b border-slate-800/50';
       tr.innerHTML = `
-        <td class="py-3 px-2 font-semibold text-slate-800">
+        <td class="py-3 px-2 font-semibold text-slate-200">
           ${prod.nombre} 
-          ${prod.tipo === 'insumo' ? '<span class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded ml-1">Insumo</span>' : ''}
+          ${prod.tipo === 'insumo' ? '<span class="text-[10px] bg-amber-950/60 text-amber-400 border border-amber-800/50 px-1.5 py-0.5 rounded ml-1">Insumo</span>' : ''}
         </td>
-        <td class="py-3 px-2 text-center text-slate-700 font-mono font-bold">${prod.stockDeposito}</td>
+        <td class="py-3 px-2 text-center text-slate-300 font-mono font-bold">${prod.stockDeposito}</td>
         ${esAdmin ? `
           <td class="py-3 px-2 text-center thAdminAcciones">
-            <button onclick="eliminarProducto(${prod.id}, '${prod.nombre}')" class="text-rose-500 hover:text-rose-700 bg-rose-50 p-1 rounded transition">🗑️</button>
+            <button onclick="eliminarProducto(${prod.id}, '${prod.nombre}')" class="text-rose-400 hover:text-rose-300 bg-rose-950/40 p-1.5 rounded-lg transition">🗑️</button>
           </td>
         ` : ''}
       `;
@@ -833,12 +833,12 @@ function renderInventario() {
     ordenarInventario(inventario).forEach(prod => {
       const total = prod.stockDeposito + prod.stockCafeteria;
       const tr = document.createElement('tr');
-      tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+      tr.className = 'hover:bg-slate-900/50 transition border-b border-slate-800/50';
       tr.innerHTML = `
-        <td class="py-3 px-2 font-semibold text-slate-800">${prod.nombre} ${prod.tipo === 'insumo' ? '<span class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">Insumo</span>' : ''}</td>
-        <td class="py-3 px-2 text-center text-slate-500 font-mono">${prod.stockDeposito}</td>
-        <td class="py-3 px-2 text-center text-sky-600 font-mono">${prod.stockCafeteria}</td>
-        <td class="py-3 px-2 text-right font-extrabold text-slate-900 font-mono">${total}</td>
+        <td class="py-3 px-2 font-semibold text-slate-200">${prod.nombre} ${prod.tipo === 'insumo' ? '<span class="text-[10px] bg-amber-950/60 text-amber-400 border border-amber-800/50 px-1.5 py-0.5 rounded ml-1">Insumo</span>' : ''}</td>
+        <td class="py-3 px-2 text-center text-slate-400 font-mono">${prod.stockDeposito}</td>
+        <td class="py-3 px-2 text-center text-sky-400 font-mono">${prod.stockCafeteria}</td>
+        <td class="py-3 px-2 text-right font-extrabold text-white font-mono">${total}</td>
       `;
       tbodyTot.appendChild(tr);
     });
@@ -864,19 +864,19 @@ function renderInsumos() {
 
   tbodyIns.innerHTML = '';
   if (insumos.length === 0) {
-    tbodyIns.innerHTML = `<tr><td colspan="3" class="text-center text-slate-400 py-4 text-xs italic">No hay insumos registrados.</td></tr>`;
+    tbodyIns.innerHTML = `<tr><td colspan="3" class="text-center text-slate-500 py-4 text-xs italic">No hay insumos registrados.</td></tr>`;
     return;
   }
 
   insumos.forEach(ins => {
     const tr = document.createElement('tr');
-    tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+    tr.className = 'hover:bg-slate-900/50 transition border-b border-slate-800/50';
     tr.innerHTML = `
-      <td class="py-3 px-3 font-semibold text-slate-800">${ins.nombre}</td>
-      <td class="py-3 px-3 text-center text-slate-700 font-mono font-bold">${ins.stockDeposito}</td>
+      <td class="py-3 px-3 font-semibold text-slate-200">${ins.nombre}</td>
+      <td class="py-3 px-3 text-center text-slate-200 font-mono font-bold">${ins.stockDeposito}</td>
       <td class="py-3 px-3 text-right flex justify-end gap-2">
-        <button onclick="pasarInsumo(${ins.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-2.5 py-1 rounded font-medium transition">🔄 Pasar</button>
-        ${esAdmin ? `<button onclick="eliminarProducto(${ins.id}, '${ins.nombre}')" class="text-rose-500 hover:text-rose-700 bg-rose-50 p-1 rounded transition">🗑️</button>` : ''}
+        <button onclick="pasarInsumo(${ins.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded-xl font-medium transition shadow-sm">🔄 Pasar</button>
+        ${esAdmin ? `<button onclick="eliminarProducto(${ins.id}, '${ins.nombre}')" class="text-rose-400 hover:text-rose-300 bg-rose-950/40 p-1.5 rounded-lg transition">🗑️</button>` : ''}
       </td>
     `;
     tbodyIns.appendChild(tr);
@@ -945,12 +945,12 @@ function renderListaBarra() {
   listaBarraActual.forEach((item, idx) => {
     totalUnidades += item.cantidad;
     const div = document.createElement('div');
-    div.className = 'flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs';
+    div.className = 'flex justify-between items-center bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 text-xs';
     div.innerHTML = `
-      <span class="text-slate-200">${item.nombre}</span>
+      <span class="text-slate-200 font-medium">${item.nombre}</span>
       <div class="flex items-center gap-2">
-        <span class="bg-sky-950 text-sky-300 font-bold px-2 py-0.5 rounded border border-sky-800">-${item.cantidad}</span>
-        <button type="button" onclick="quitarDeBarra(${idx})" class="text-slate-500 hover:text-rose-400 font-bold px-1">✕</button>
+        <span class="bg-sky-950 text-sky-300 font-bold px-2 py-0.5 rounded-lg border border-sky-800">-${item.cantidad}</span>
+        <button type="button" onclick="quitarDeBarra(${idx})" class="text-slate-400 hover:text-rose-400 font-bold px-1 transition">✕</button>
       </div>
     `;
     lista.appendChild(div);
@@ -988,12 +988,12 @@ function renderListaTraspaso() {
   listaTraspasoActual.forEach((item, idx) => {
     totalUnidades += item.cantidad;
     const div = document.createElement('div');
-    div.className = 'flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs';
+    div.className = 'flex justify-between items-center bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 text-xs';
     div.innerHTML = `
-      <span class="text-slate-200">${item.nombre}</span>
+      <span class="text-slate-200 font-medium">${item.nombre}</span>
       <div class="flex items-center gap-2">
-        <span class="bg-indigo-950 text-indigo-300 font-bold px-2 py-0.5 rounded border border-indigo-800">+${item.cantidad} en Vitrina</span>
-        <button type="button" onclick="quitarDeTraspaso(${idx})" class="text-slate-500 hover:text-rose-400 font-bold px-1">✕</button>
+        <span class="bg-indigo-950 text-indigo-300 font-bold px-2 py-0.5 rounded-lg border border-indigo-800">+${item.cantidad} en Vitrina</span>
+        <button type="button" onclick="quitarDeTraspaso(${idx})" class="text-slate-400 hover:text-rose-400 font-bold px-1 transition">✕</button>
       </div>
     `;
     lista.appendChild(div);
@@ -1011,7 +1011,7 @@ function renderListaIngreso() {
   lista.innerHTML = '';
 
   if (listaIngresoActual.length === 0) {
-    lista.innerHTML = `<p class="text-xs text-slate-400 italic py-2">Ningún ítem agregado para ingreso aún.</p>`;
+    lista.innerHTML = `<p class="text-xs text-slate-500 italic py-2">Ningún ítem agregado para ingreso aún.</p>`;
     if (btnConf) btnConf.disabled = true;
     if (resCount) resCount.textContent = '0 ítems';
     return;
@@ -1023,12 +1023,12 @@ function renderListaIngreso() {
   listaIngresoActual.forEach((item, idx) => {
     totalUnidades += item.cantidad;
     const div = document.createElement('div');
-    div.className = 'flex justify-between items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs';
+    div.className = 'flex justify-between items-center bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 text-xs';
     div.innerHTML = `
-      <span class="text-slate-800 font-medium">${item.nombre} <span class="text-[10px] text-slate-500">(${item.destino})</span></span>
+      <span class="text-slate-200 font-medium">${item.nombre} <span class="text-[10px] text-slate-400">(${item.destino})</span></span>
       <div class="flex items-center gap-2">
-        <span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded border border-emerald-200">+${item.cantidad}</span>
-        <button type="button" onclick="quitarDeIngreso(${idx})" class="text-slate-400 hover:text-rose-600 font-bold px-1">✕</button>
+        <span class="bg-emerald-950 text-emerald-300 font-bold px-2 py-0.5 rounded-lg border border-emerald-800">+${item.cantidad}</span>
+        <button type="button" onclick="quitarDeIngreso(${idx})" class="text-slate-400 hover:text-rose-400 font-bold px-1 transition">✕</button>
       </div>
     `;
     lista.appendChild(div);
@@ -1037,7 +1037,7 @@ function renderListaIngreso() {
   if (resCount) resCount.textContent = `${listaIngresoActual.length} tipo(s) | Total: ${totalUnidades}`;
 }
 
-// --- PLANILLA DE CIERRE DE TURNO POR HORARIOS ESPECÍFICOS ---[cite: 5]
+// --- PLANILLA DE CIERRE DE TURNO POR HORARIOS ESPECÍFICOS ---
 
 function renderCierreTurno() {
   const tbodyCierre = document.getElementById('tablaCierreTurno');
@@ -1059,13 +1059,11 @@ function renderCierreTurno() {
         let esValidoParaTurno = false;
 
         if (turnoSeleccionado.includes('Mañana')) {
-          // Turno Mañana: hasta las 15:00
           esValidoParaTurno = horaReg <= "15:00";
         } else if (turnoSeleccionado.includes('Tarde')) {
-          // Turno Tarde: desde las 15:00 en adelante (acumulando desde lo que dejó la mañana)
           esValidoParaTurno = horaReg > "15:00";
         } else {
-          esValidoParaTurno = true; // Jornada completa
+          esValidoParaTurno = true;
         }
 
         if (esValidoParaTurno) {
@@ -1080,11 +1078,11 @@ function renderCierreTurno() {
     });
 
     const tr = document.createElement('tr');
-    tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
+    tr.className = 'hover:bg-slate-900/50 transition border-b border-slate-800/50 text-xs';
     tr.innerHTML = `
-      <td class="py-2.5 px-3 font-semibold text-slate-800">${prod.nombre}</td>
-      <td class="py-2.5 px-3 text-center text-sky-700 font-mono font-bold">${prod.stockCafeteria}</td>
-      <td class="py-2.5 px-3 text-center text-slate-700 font-mono font-bold">${prod.stockDeposito}</td>
+      <td class="py-2.5 px-3 font-semibold text-slate-200">${prod.nombre}</td>
+      <td class="py-2.5 px-3 text-center text-sky-400 font-mono font-bold">${prod.stockCafeteria}</td>
+      <td class="py-2.5 px-3 text-center text-slate-300 font-mono font-bold">${prod.stockDeposito}</td>
     `;
     tbodyCierre.appendChild(tr);
   });
@@ -1111,7 +1109,7 @@ window.copiarTextoWhatsApp = function() {
   });
 };
 
-// --- REPORTES E HISTORIAL (EXPORTACIÓN A EXCEL / CSV) ---[cite: 5]
+// --- REPORTES E HISTORIAL (EXPORTACIÓN A EXCEL / CSV) ---
 
 function renderReportesExcel() {
   const tbodyReporte = document.getElementById('tablaReporteExcel');
@@ -1136,7 +1134,7 @@ function renderReportesExcel() {
   }
 
   if (filtrados.length === 0) {
-    tbodyReporte.innerHTML = `<tr><td colspan="5" class="text-center text-slate-400 py-6 italic">No hay registros en este rango de fechas.</td></tr>`;
+    tbodyReporte.innerHTML = `<tr><td colspan="5" class="text-center text-slate-500 py-6 italic">No hay registros en este rango de fechas.</td></tr>`;
     return;
   }
 
@@ -1144,13 +1142,13 @@ function renderReportesExcel() {
     if (reg.items && Array.isArray(reg.items)) {
       reg.items.forEach(item => {
         const tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-50 border-b border-slate-100 text-xs';
+        tr.className = 'hover:bg-slate-900/50 border-b border-slate-800/50 text-xs';
         tr.innerHTML = `
-          <td class="py-2.5 px-3 text-slate-600">${reg.fechaCorta || '-'}</td>
-          <td class="py-2.5 px-3 font-semibold text-slate-800">${reg.tipo}</td>
-          <td class="py-2.5 px-3 text-slate-900">${item.nombre} (<span class="font-bold">${item.cantidad}</span>)</td>
-          <td class="py-2.5 px-3 text-slate-600">${reg.origen || 'General'}</td>
-          <td class="py-2.5 px-3 text-slate-700">${reg.usuario}</td>
+          <td class="py-2.5 px-3 text-slate-400">${reg.fechaCorta || '-'}</td>
+          <td class="py-2.5 px-3 font-semibold text-slate-200">${reg.tipo}</td>
+          <td class="py-2.5 px-3 text-slate-100">${item.nombre} (<span class="font-bold text-sky-400">${item.cantidad}</span>)</td>
+          <td class="py-2.5 px-3 text-slate-400">${reg.origen || 'General'}</td>
+          <td class="py-2.5 px-3 text-slate-300">${reg.usuario}</td>
         `;
         tbodyReporte.appendChild(tr);
       });
@@ -1179,7 +1177,7 @@ function exportarExcelCSV() {
   document.body.removeChild(link);
 }
 
-// --- HISTORIAL EN FORMATO TIPO PLANILLA EXCEL ---[cite: 5]
+// --- HISTORIAL REDISEÑADO EN FORMATO DE TARJETAS MODERNAS Y LIMPIAS ---
 
 function renderHistorial() {
   const contenedor = document.getElementById('contenedorHistorial');
@@ -1198,83 +1196,57 @@ function renderHistorial() {
   const esAdmin = usuarioActual === 'Administrador';
 
   const wrapper = document.createElement('div');
-  wrapper.className = 'overflow-x-auto bg-white border border-slate-300 rounded-xl shadow-sm text-xs';
+  wrapper.className = 'space-y-3';
 
-  const table = document.createElement('table');
-  table.className = 'w-full text-left border-collapse';
+  historialMovimientos.forEach(reg => {
+    const esCreador = reg.usuario === usuarioActual;
+    const puedeBorrar = esAdmin || esCreador;
 
-  const tiposMovimiento = ['VENTA_BARRA', 'TRASPASO', 'INGRESO', 'TRASPASO_INSUMO'];
-  const titulosSeccion = {
-    'VENTA_BARRA': 'VENTAS',
-    'TRASPASO': 'TRASPASO',
-    'INGRESO': 'INGRESO',
-    'TRASPASO_INSUMO': 'TRASPASO INSUMOS'
-  };
+    const card = document.createElement('div');
+    card.className = 'bg-slate-950 border border-slate-800/80 rounded-2xl p-4 space-y-2.5 shadow-md transition hover:border-slate-700';
 
-  let hayRegistrosVisibles = false;
+    let badgeColor = 'bg-sky-950/80 text-sky-400 border-sky-800/50';
+    if (reg.tipo === 'TRASPASO') badgeColor = 'bg-indigo-950/80 text-indigo-400 border-indigo-800/50';
+    else if (reg.tipo === 'INGRESO') badgeColor = 'bg-emerald-950/80 text-emerald-400 border-emerald-800/50';
+    else if (reg.tipo === 'TRASPASO_INSUMO') badgeColor = 'bg-amber-950/80 text-amber-400 border-amber-800/50';
 
-  tiposMovimiento.forEach(tipo => {
-    const movimientosTipo = historialMovimientos.filter(m => m.tipo === tipo);
-
-    if (movimientosTipo.length > 0) {
-      hayRegistrosVisibles = true;
-
-      const trHeader = document.createElement('tr');
-      trHeader.innerHTML = `
-        <td colspan="7" class="bg-slate-700 text-white font-bold px-3 py-2 uppercase tracking-wider text-[11px] border-t border-b border-slate-600">
-          📁 ${titulosSeccion[tipo] || tipo}
-        </td>
-      `;
-      table.appendChild(trHeader);
-
-      const trCols = document.createElement('tr');
-      trCols.className = 'bg-slate-100 text-slate-700 font-bold border-b border-slate-300 text-[11px]';
-      trCols.innerHTML = `
-        <th class="py-2 px-3 border-r border-slate-300">Fecha</th>
-        <th class="py-2 px-3 border-r border-slate-300">Tipo Movimiento</th>
-        <th class="py-2 px-3 border-r border-slate-300">Usuario</th>
-        <th class="py-2 px-3 border-r border-slate-300">Origen</th>
-        <th class="py-2 px-3 border-r border-slate-300">Producto</th>
-        <th class="py-2 px-3 border-r border-slate-300 text-center">Cantidad</th>
-        <th class="py-2 px-3 text-center">Acción</th>
-      `;
-      table.appendChild(trCols);
-
-      movimientosTipo.forEach(reg => {
-        const esCreador = reg.usuario === usuarioActual;
-        const puedeBorrar = esAdmin || esCreador;
-
-        if (reg.items && Array.isArray(reg.items)) {
-          reg.items.forEach(item => {
-            const trItem = document.createElement('tr');
-            trItem.className = 'hover:bg-slate-50 border-b border-slate-200 transition';
-            trItem.innerHTML = `
-              <td class="py-2 px-3 border-r border-slate-200 text-slate-600">${reg.fechaCorta || '-'}</td>
-              <td class="py-2 px-3 border-r border-slate-200 font-semibold text-slate-700">${reg.tipo}</td>
-              <td class="py-2 px-3 border-r border-slate-200 text-slate-600">${reg.usuario}</td>
-              <td class="py-2 px-3 border-r border-slate-200 text-slate-600">${reg.origen || 'General'}</td>
-              <td class="py-2 px-3 border-r border-slate-200 text-slate-900 font-medium">${item.nombre} ${item.hora ? `<span class="text-[10px] text-slate-400 font-normal">(${item.hora})</span>` : ''}</td>
-              <td class="py-2 px-3 border-r border-slate-200 text-center font-bold ${reg.tipo === 'INGRESO' ? 'text-emerald-600' : 'text-indigo-600'}">${reg.tipo === 'INGRESO' ? '+' : ''}${item.cantidad}</td>
-              <td class="py-2 px-3 text-center">
-                ${puedeBorrar ? `<button onclick="eliminarRegistroHistorial('${reg._firebaseKey}', ${reg.id})" class="text-rose-600 hover:text-rose-800 font-semibold text-[10px] bg-rose-50 px-2 py-0.5 rounded border border-rose-200">Anular</button>` : `<span class="text-[10px] text-slate-400 italic">-</span>`}
-              </td>
-            `;
-            table.appendChild(trItem);
-          });
-        }
+    let itemsHtml = '';
+    if (reg.items && Array.isArray(reg.items)) {
+      reg.items.forEach(it => {
+        itemsHtml += `
+          <div class="flex justify-between items-center py-1.5 px-3 bg-slate-900/60 rounded-xl border border-slate-800/40 text-xs">
+            <span class="text-slate-200 font-medium">${it.nombre} ${it.hora ? `<span class="text-[10px] text-slate-500 font-normal">(${it.hora})</span>` : ''}</span>
+            <span class="font-bold text-white font-mono bg-slate-800 px-2 py-0.5 rounded-lg">x${it.cantidad}</span>
+          </div>
+        `;
       });
     }
+
+    card.innerHTML = `
+      <div class="flex items-center justify-between border-b border-slate-900 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-1 rounded-full text-[10px] font-bold border tracking-wider ${badgeColor}">${reg.tipo}</span>
+          <span class="text-slate-300 text-xs font-semibold">👤 ${reg.usuario}</span>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <span class="text-slate-400 text-[11px] font-mono">${reg.fechaCorta || ''}</span>
+          ${puedeBorrar ? `<button onclick="eliminarRegistroHistorial('${reg._firebaseKey}', ${reg.id})" class="text-rose-400 hover:text-rose-300 bg-rose-950/40 hover:bg-rose-950/80 px-2.5 py-1 rounded-lg border border-rose-900/50 text-[10px] font-semibold transition">Anular</button>` : ''}
+        </div>
+      </div>
+      <div class="text-slate-400 text-[11px] font-medium flex items-center gap-1">
+        <span>📍 Origen/Destino:</span> <span class="text-slate-300">${reg.origen || 'General'}</span>
+      </div>
+      <div class="space-y-1.5 pt-1">
+        ${itemsHtml}
+      </div>
+    `;
+    wrapper.appendChild(card);
   });
 
-  wrapper.appendChild(table);
   contenedor.appendChild(wrapper);
-
-  if (!hayRegistrosVisibles) {
-    empty?.classList.remove('hidden');
-  }
 }
 
-// --- INICIALIZACIÓN DE EVENTOS ---[cite: 5]
+// --- INICIALIZACIÓN DE EVENTOS ---
 
 function iniciarApp() {
   verificarSesion();
