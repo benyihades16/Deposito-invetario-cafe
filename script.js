@@ -1280,7 +1280,7 @@ function renderHistorial() {
   if (!contenedor) return;
   contenedor.innerHTML = '';
 
-  if (historialMovimientos.length === 0) {
+  if (!historialMovimientos || historialMovimientos.length === 0) {
     empty?.classList.remove('hidden');
     return;
   }
@@ -1289,10 +1289,10 @@ function renderHistorial() {
   const usuarioActual = sessionStorage.getItem('usuarioLogueado');
   const esAdmin = usuarioActual === 'Administrador';
 
-  // Agrupar movimientos por fechaCorta para mantener la estructura visual limpia por día
+  // Agrupar todos los movimientos por fechaCorta
   const agrupadosPorFecha = {};
   historialMovimientos.forEach(reg => {
-    const fechaKey = reg.fechaCorta || 'Sin Fecha';
+    const fechaKey = reg.fechaCorta || reg.fecha || 'Sin Fecha';
     if (!agrupadosPorFecha[fechaKey]) {
       agrupadosPorFecha[fechaKey] = [];
     }
@@ -1302,15 +1302,14 @@ function renderHistorial() {
   const wrapper = document.createElement('div');
   wrapper.className = 'space-y-4 text-xs';
 
-  // Recorrer cada fecha ordenada de la más reciente a la más antigua
+  // Recorrer fechas ordenadas de la más reciente a la más antigua
   Object.keys(agrupadosPorFecha).sort().reverse().forEach(fechaKey => {
     const movimientosDia = agrupadosPorFecha[fechaKey];
 
-    // Contenedor del día
     const seccionDia = document.createElement('div');
     seccionDia.className = 'space-y-3';
 
-    // Cabecera del Día (ej: 📅 Día: 14/09/2026)
+    // Cabecera del Día
     const headerDia = document.createElement('div');
     headerDia.className = 'bg-slate-100 border border-slate-300 rounded-xl px-4 py-2.5 flex justify-between items-center shadow-sm';
     headerDia.innerHTML = `
@@ -1318,27 +1317,33 @@ function renderHistorial() {
         📅 Día: ${fechaKey}
       </span>
       <span class="bg-slate-200 text-slate-700 font-semibold px-2.5 py-0.5 rounded-full text-xs">
-        ${movimientosDia.length} registro(s)
+        ${movimientosDia.length} movimiento(s)
       </span>
     `;
     seccionDia.appendChild(headerDia);
 
-    // Tarjetas individuales de movimientos para ese día
+    // Tarjetas individuales por cada movimiento (Venta, Traspasos, Ingresos)
     movimientosDia.forEach(reg => {
       const esCreador = reg.usuario === usuarioActual;
       const puedeBorrar = esAdmin || esCreador;
 
+      const tipoUpper = (reg.tipo || '').toUpperCase();
       let colorBadge = 'bg-slate-800 text-slate-200 border-slate-700';
       let iconoTipo = '📄';
-      if (reg.tipo === 'VENTA_BARRA' || reg.tipo.includes('VENTA')) {
+      let colorCantidad = 'text-sky-700';
+
+      if (tipoUpper.includes('VENTA')) {
         colorBadge = 'bg-sky-100 text-sky-800 border-sky-300';
         iconoTipo = '☕';
-      } else if (reg.tipo === 'TRASPASO' || reg.tipo === 'TRASPASO_INSUMO') {
+        colorCantidad = 'text-sky-700';
+      } else if (tipoUpper.includes('TRASPASO')) {
         colorBadge = 'bg-indigo-100 text-indigo-800 border-indigo-300';
         iconoTipo = '🔄';
-      } else if (reg.tipo === 'INGRESO') {
+        colorCantidad = 'text-indigo-700';
+      } else if (tipoUpper.includes('INGRESO')) {
         colorBadge = 'bg-emerald-100 text-emerald-800 border-emerald-300';
         iconoTipo = '📦';
+        colorCantidad = 'text-emerald-600';
       }
 
       const card = document.createElement('div');
@@ -1350,10 +1355,10 @@ function renderHistorial() {
           itemsHtml += `
             <div class="flex justify-between items-center border-b border-slate-100 py-1.5 last:border-b-0">
               <span class="text-slate-800 font-medium">
-                ${item.nombre} ${item.hora ? `<span class="text-slate-400 font-normal text-[11px]">(${item.hora})</span>` : ''}
+                ${item.nombre || 'Item'} ${item.hora ? `<span class="text-slate-400 font-normal text-[11px]">(${item.hora})</span>` : ''}
               </span>
-              <span class="font-mono font-bold ${reg.tipo === 'INGREsO' ? 'text-emerald-600' : 'text-sky-700'}">
-                ${reg.tipo === 'INGRESO' ? '+' : '-'}${item.cantidad}
+              <span class="font-mono font-bold ${colorCantidad}">
+                ${tipoUpper.includes('INGRESO') ? '+' : '-'}${item.cantidad || 0}
               </span>
             </div>
           `;
@@ -1366,7 +1371,7 @@ function renderHistorial() {
             <span class="px-2.5 py-1 rounded-lg border font-bold text-xs ${colorBadge}">
               ${iconoTipo} ${reg.tipo}
             </span>
-            <span class="text-slate-700 font-semibold text-xs">👤 ${reg.usuario}</span>
+            <span class="text-slate-700 font-semibold text-xs">👤 ${reg.usuario || 'Desconocido'}</span>
           </div>
           <div class="flex items-center gap-2">
             ${puedeBorrar ? `<button onclick="eliminarRegistroHistorial('${reg._firebaseKey}', ${reg.id})" class="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg border border-rose-200 font-bold transition text-xs flex items-center gap-1">🗑️ Anular</button>` : ''}
@@ -1378,7 +1383,7 @@ function renderHistorial() {
         </div>
 
         <div class="border-t border-slate-100 pt-2 flex justify-between items-center text-[11px] text-slate-400">
-          <span>${reg.fecha || reg.fechaCorta}</span>
+          <span>${reg.fecha || reg.fechaCorta || ''}</span>
           <span>(${reg.origen || 'General'})</span>
         </div>
       `;
