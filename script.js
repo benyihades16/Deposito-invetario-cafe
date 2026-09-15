@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue, set, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-// Configuración de Firebase
+// Configuración de Firebase[cite: 5]
 const firebaseConfig = {
   apiKey: "AIzaSyAivVsjrsxrvzaqANN9FMBNRNVX4puHo3c",
   authDomain: "control-deposito26.firebaseapp.com",
@@ -14,7 +14,7 @@ const firebaseConfig = {
 };
 
 const ADMIN_PIN = "1234";
-const GRAMOS_POR_CAFE = 18; // 18g por cada bebida de café estándar
+const GRAMOS_POR_CAFE = 18; // 18g por cada bebida de café estándar[cite: 5]
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
@@ -28,7 +28,7 @@ let listaBarraActual = [];
 let listaTraspasoActual = [];
 let listaIngresoActual = [];
 
-// Helper para formato de fecha único y estándar (DD/MM/YYYY)
+// Helper para formato de fecha único y estándar (DD/MM/YYYY)[cite: 5]
 function getFechaHoy() {
   const d = new Date();
   const dia = String(d.getDate()).padStart(2, '0');
@@ -37,7 +37,7 @@ function getFechaHoy() {
   return `${dia}/${mes}/${anio}`;
 }
 
-// FUNCIÓN DE ORDENAMIENTO: Leches primero, luego A-Z
+// FUNCIÓN DE ORDENAMIENTO: Leches primero, luego A-Z[cite: 5]
 function ordenarInventario(lista) {
   return [...lista].sort((a, b) => {
     const aEsLeche = a.nombre.toLowerCase().includes('leche');
@@ -50,7 +50,7 @@ function ordenarInventario(lista) {
   });
 }
 
-// Escuchar cambios de inventario en vivo
+// Escuchar cambios de inventario en vivo[cite: 5]
 onValue(inventoryRef, (snapshot) => {
   const data = snapshot.val();
   if (data) {
@@ -68,7 +68,7 @@ onValue(inventoryRef, (snapshot) => {
   renderTodo();
 });
 
-// Escuchar cambios de historial en vivo
+// Escuchar cambios de historial en vivo[cite: 5]
 onValue(historyRef, (snapshot) => {
   const data = snapshot.val();
   if (data) {
@@ -82,7 +82,7 @@ onValue(historyRef, (snapshot) => {
   renderTodo();
 });
 
-// --- GESTIÓN DE PERFILES Y SESIÓN ---
+// --- GESTIÓN DE PERFILES Y SESIÓN ---[cite: 5]
 
 function verificarSesion() {
   const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
@@ -272,7 +272,7 @@ function irASeccion(tabId) {
   }
 }
 
-// --- ACCIONES DE PRODUCTOS Y STOCK ---
+// --- ACCIONES DE PRODUCTOS Y STOCK ---[cite: 5]
 
 function guardarProductoNuevo() {
   if (sessionStorage.getItem('usuarioLogueado') !== 'Administrador') return;
@@ -321,7 +321,7 @@ window.eliminarProducto = function(id, nombre) {
   }
 };
 
-// --- OPERACIONES DE TURNO Y REGISTRO EN HISTORIAL ---
+// --- OPERACIONES DE TURNO Y REGISTRO EN HISTORIAL ---[cite: 5]
 
 function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   const usuario = sessionStorage.getItem('usuarioLogueado') || 'Usuario';
@@ -377,7 +377,7 @@ function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   }
 }
 
-// --- TRASPOS MÚLTIPLES ---
+// --- TRASPASOS MÚLTIPLES ---[cite: 5]
 function agregarATraspaso() {
   const select = document.getElementById('selectProductoTraspaso');
   const cantInput = document.getElementById('cantTraspaso');
@@ -442,7 +442,7 @@ function confirmarTraspasoMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- INGRESO DE MERCADERÍA MÚLTIPLE ---
+// --- INGRESO DE MERCADERÍA MÚLTIPLE ---[cite: 5]
 function agregarAIngreso() {
   const selectDestino = document.getElementById('selectDestinoIngreso');
   const selectProd = document.getElementById('selectProductoIngreso');
@@ -508,7 +508,7 @@ function confirmarIngresoStockMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- VENTAS & BARRA CON CÁLCULO AUTOMÁTICO DE CAFÉ ---
+// --- VENTAS & BARRA CON CÁLCULO AUTOMÁTICO DE CAFÉ ---[cite: 5]
 function agregarABarra() {
   const select = document.getElementById('selectProductoBarra');
   const cantInput = document.getElementById('cantBarra');
@@ -584,7 +584,7 @@ function confirmarConsumoBarra() {
   irASeccion('tab-stock');
 }
 
-// --- GESTIÓN DE INSUMOS (DEPÓSITO PURO) ---
+// --- GESTIÓN DE INSUMOS (DEPÓSITO PURO) ---[cite: 5]
 window.pasarInsumo = function(idInsumo) {
   const prod = inventario.find(p => p.id === idInsumo);
   if (!prod) return;
@@ -610,8 +610,7 @@ window.pasarInsumo = function(idInsumo) {
   alert(`✅ Se pasaron ${cantidad} de "${prod.nombre}". Quedan ${prod.stockDeposito} en depósito.`);
 };
 
-// --- ANULACIÓN CON RESTRICCIÓN DE PERMISOS ---
-
+// --- ANULACIÓN CON RESTRICCIÓN DE PERMISOS ---[cite: 5]
 window.eliminarRegistroHistorial = function(key, idRegistro) {
   const reg = historialMovimientos.find(m => m.id === idRegistro || m._firebaseKey === key);
   if (!reg) return;
@@ -649,8 +648,7 @@ window.eliminarRegistroHistorial = function(key, idRegistro) {
   alert("✅ Registro anulado y stock reajustado.");
 };
 
-// --- MANTENIMIENTO ADMIN ---
-
+// --- MANTENIMIENTO ADMIN ---[cite: 5]
 function renderPanelMantenimiento(nombreUsuario) {
   let panel = document.getElementById('panelMantenimientoAdmin');
 
@@ -748,7 +746,7 @@ window.reiniciarStockTodo = function() {
   }
 };
 
-// --- RENDERIZADO GENERAL Y FILTRADO CON HORARIOS DE TURNO ---
+// --- RENDERIZADO GENERAL Y TURNOS ESPECÍFICOS ---[cite: 5]
 
 function renderTodo() {
   renderInventario();
@@ -758,6 +756,8 @@ function renderTodo() {
   renderListaTraspaso();
   renderListaIngreso();
   renderHistorial();
+  renderCierreTurno();
+  renderReportesExcel();
 }
 
 function renderInventario() {
@@ -774,7 +774,6 @@ function renderInventario() {
       let ventasHoy = 0;
       let entradasHoy = 0;
 
-      // Analizamos el historial del día actual para este producto
       historialMovimientos.forEach(m => {
         if (m.fechaCorta === hoyStr && m.items) {
           m.items.forEach(it => {
@@ -1038,7 +1037,149 @@ function renderListaIngreso() {
   if (resCount) resCount.textContent = `${listaIngresoActual.length} tipo(s) | Total: ${totalUnidades}`;
 }
 
-// --- HISTORIAL EN FORMATO TIPO PLANILLA EXCEL ---
+// --- PLANILLA DE CIERRE DE TURNO POR HORARIOS ESPECÍFICOS ---[cite: 5]
+
+function renderCierreTurno() {
+  const tbodyCierre = document.getElementById('tablaCierreTurno');
+  const selectTurno = document.getElementById('selectTurnoReporte');
+  if (!tbodyCierre || !selectTurno) return;
+
+  tbodyCierre.innerHTML = '';
+  const turnoSeleccionado = selectTurno.value;
+  const hoyStr = getFechaHoy();
+  const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
+
+  productosVisibles.forEach(prod => {
+    let ventasTurno = 0;
+    let traspasosTurno = 0;
+
+    historialMovimientos.forEach(m => {
+      if (m.fechaCorta === hoyStr && m.items) {
+        const horaReg = m.horaRegistro || "00:00";
+        let esValidoParaTurno = false;
+
+        if (turnoSeleccionado.includes('Mañana')) {
+          // Turno Mañana: hasta las 15:00
+          esValidoParaTurno = horaReg <= "15:00";
+        } else if (turnoSeleccionado.includes('Tarde')) {
+          // Turno Tarde: desde las 15:00 en adelante (acumulando desde lo que dejó la mañana)
+          esValidoParaTurno = horaReg > "15:00";
+        } else {
+          esValidoParaTurno = true; // Jornada completa
+        }
+
+        if (esValidoParaTurno) {
+          m.items.forEach(it => {
+            if (it.nombre === prod.nombre) {
+              if (m.tipo === 'VENTA_BARRA' || m.tipo.includes('VENTA')) ventasTurno += it.cantidad;
+              if (m.tipo === 'TRASPASO') traspasosTurno += it.cantidad;
+            }
+          });
+        }
+      }
+    });
+
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
+    tr.innerHTML = `
+      <td class="py-2.5 px-3 font-semibold text-slate-800">${prod.nombre}</td>
+      <td class="py-2.5 px-3 text-center text-sky-700 font-mono font-bold">${prod.stockCafeteria}</td>
+      <td class="py-2.5 px-3 text-center text-slate-700 font-mono font-bold">${prod.stockDeposito}</td>
+    `;
+    tbodyCierre.appendChild(tr);
+  });
+}
+
+window.copiarTextoWhatsApp = function() {
+  const selectTurno = document.getElementById('selectTurnoReporte');
+  const turno = selectTurno ? selectTurno.value : 'Cierre de Turno';
+  const hoyStr = getFechaHoy();
+  const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
+
+  let texto = `📋 *REPORTE DE CIERRE - ${turno.toUpperCase()}*\n📅 Fecha: ${hoyStr}\n\n*Stock Actual en Vitrina / Cafetería:*`;
+  
+  productosVisibles.forEach(prod => {
+    texto += `\n- *${prod.nombre}*: ${prod.stockCafeteria} unids (Depósito: ${prod.stockDeposito})`;
+  });
+
+  texto += `\n\n_Enviado desde Control de Depósito y Cafetería_`;
+
+  navigator.clipboard.writeText(texto).then(() => {
+    alert("✅ ¡Reporte copiado al portapapeles listo para pegar en WhatsApp!");
+  }).catch(err => {
+    alert("Error al copiar: " + err);
+  });
+};
+
+// --- REPORTES E HISTORIAL (EXPORTACIÓN A EXCEL / CSV) ---[cite: 5]
+
+function renderReportesExcel() {
+  const tbodyReporte = document.getElementById('tablaReporteExcel');
+  const filtroDesde = document.getElementById('filtroFechaDesde');
+  const filtroHasta = document.getElementById('filtroFechaHasta');
+
+  if (!tbodyReporte) return;
+  tbodyReporte.innerHTML = '';
+
+  let filtrados = [...historialMovimientos];
+
+  if (filtroDesde && filtroDesde.value) {
+    const [anioD, mesD, diaD] = filtroDesde.value.split('-');
+    const fechaDesdeStr = `${diaD}/${mesD}/${anioD}`;
+    filtrados = filtrados.filter(m => m.fechaCorta >= fechaDesdeStr);
+  }
+
+  if (filtroHasta && filtroHasta.value) {
+    const [anioH, mesH, diaH] = filtroHasta.value.split('-');
+    const fechaHastaStr = `${diaH}/${mesH}/${anioH}`;
+    filtrados = filtrados.filter(m => m.fechaCorta <= fechaHastaStr);
+  }
+
+  if (filtrados.length === 0) {
+    tbodyReporte.innerHTML = `<tr><td colspan="5" class="text-center text-slate-400 py-6 italic">No hay registros en este rango de fechas.</td></tr>`;
+    return;
+  }
+
+  filtrados.forEach(reg => {
+    if (reg.items && Array.isArray(reg.items)) {
+      reg.items.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 border-b border-slate-100 text-xs';
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 text-slate-600">${reg.fechaCorta || '-'}</td>
+          <td class="py-2.5 px-3 font-semibold text-slate-800">${reg.tipo}</td>
+          <td class="py-2.5 px-3 text-slate-900">${item.nombre} (<span class="font-bold">${item.cantidad}</span>)</td>
+          <td class="py-2.5 px-3 text-slate-600">${reg.origen || 'General'}</td>
+          <td class="py-2.5 px-3 text-slate-700">${reg.usuario}</td>
+        `;
+        tbodyReporte.appendChild(tr);
+      });
+    }
+  });
+}
+
+function exportarExcelCSV() {
+  let csvContent = "data:text/csv;charset=utf-8,Fecha;Tipo;Detalle Item;Cantidad;Origen/Destino;Usuario\n";
+
+  historialMovimientos.forEach(reg => {
+    if (reg.items && Array.isArray(reg.items)) {
+      reg.items.forEach(item => {
+        const fila = `"${reg.fechaCorta || ''}";"${reg.tipo}";"${item.nombre}";"${item.cantidad}";"${reg.origen || ''}";"${reg.usuario}"`;
+        csvContent += fila + "\n";
+      });
+    }
+  });
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `reporte_inventario_${getFechaHoy().replace(/\//g, '-')}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// --- HISTORIAL EN FORMATO TIPO PLANILLA EXCEL ---[cite: 5]
 
 function renderHistorial() {
   const contenedor = document.getElementById('contenedorHistorial');
@@ -1056,14 +1197,12 @@ function renderHistorial() {
   const usuarioActual = sessionStorage.getItem('usuarioLogueado');
   const esAdmin = usuarioActual === 'Administrador';
 
-  // Contenedor principal con estilo de tabla Excel
   const wrapper = document.createElement('div');
   wrapper.className = 'overflow-x-auto bg-white border border-slate-300 rounded-xl shadow-sm text-xs';
 
   const table = document.createElement('table');
   table.className = 'w-full text-left border-collapse';
 
-  // Categorías principales agrupadas tal como en tu Excel
   const tiposMovimiento = ['VENTA_BARRA', 'TRASPASO', 'INGRESO', 'TRASPASO_INSUMO'];
   const titulosSeccion = {
     'VENTA_BARRA': 'VENTAS',
@@ -1080,7 +1219,6 @@ function renderHistorial() {
     if (movimientosTipo.length > 0) {
       hayRegistrosVisibles = true;
 
-      // Encabezado de Sección Estilo Excel (Gris oscuro)
       const trHeader = document.createElement('tr');
       trHeader.innerHTML = `
         <td colspan="7" class="bg-slate-700 text-white font-bold px-3 py-2 uppercase tracking-wider text-[11px] border-t border-b border-slate-600">
@@ -1089,7 +1227,6 @@ function renderHistorial() {
       `;
       table.appendChild(trHeader);
 
-      // Fila de Columnas de la Tabla
       const trCols = document.createElement('tr');
       trCols.className = 'bg-slate-100 text-slate-700 font-bold border-b border-slate-300 text-[11px]';
       trCols.innerHTML = `
@@ -1137,7 +1274,8 @@ function renderHistorial() {
   }
 }
 
-// Inicialización de la aplicación y manejo de pestañas
+// --- INICIALIZACIÓN DE EVENTOS ---[cite: 5]
+
 function iniciarApp() {
   verificarSesion();
 
@@ -1152,7 +1290,9 @@ function iniciarApp() {
     'tab-ingreso': 'Ingreso de Mercadería',
     'tab-nuevo_prod': 'Nuevo Producto (Admin)',
     'tab-historial': 'Historial de Movimientos',
-    'tab-insumos': 'Insumos y Depósito'
+    'tab-insumos': 'Insumos y Depósito',
+    'tab-cierre': 'Planilla Cierre de Turno',
+    'tab-reportes': 'Reportes e Historial (Excel)'
   };
 
   radioTabs.forEach(radio => {
@@ -1165,7 +1305,7 @@ function iniciarApp() {
     });
   });
 
-  // Vincular eventos a botones principales
+  // Vincular eventos a botones y selectores
   document.getElementById('btnGuardarNuevoProd')?.addEventListener('click', guardarProductoNuevo);
   document.getElementById('btnAgregarATraspaso')?.addEventListener('click', agregarATraspaso);
   document.getElementById('btnConfirmarTraspaso')?.addEventListener('click', confirmarTraspasoMultiple);
@@ -1173,7 +1313,13 @@ function iniciarApp() {
   document.getElementById('btnConfirmarBarra')?.addEventListener('click', confirmarConsumoBarra);
   document.getElementById('btnAgregarAIngreso')?.addEventListener('click', agregarAIngreso);
   document.getElementById('btnGuardarIngreso')?.addEventListener('click', confirmarIngresoStockMultiple);
+  
+  // Vincular cierre de turno y reportes
+  document.getElementById('selectTurnoReporte')?.addEventListener('change', renderCierreTurno);
+  document.getElementById('btnCopiarWhatsApp')?.addEventListener('click', copiarTextoWhatsApp);
+  document.getElementById('filtroFechaDesde')?.addEventListener('change', renderReportesExcel);
+  document.getElementById('filtroFechaHasta')?.addEventListener('change', renderReportesExcel);
+  document.getElementById('btnDescargarExcel')?.addEventListener('click', exportarExcelCSV);
 }
 
-// Ejecutar al cargar la página
 window.addEventListener('DOMContentLoaded', iniciarApp);
