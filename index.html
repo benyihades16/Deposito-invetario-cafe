@@ -20,9 +20,6 @@
 #tab-barra:checked ~ main #sec-barra { display: block; }
 #tab-ingreso:checked ~ main #sec-ingreso { display: block; }
 #tab-insumos:checked ~ main #sec-insumos { display: block; }
-#tab-bajas:checked ~ main #sec-bajas { display: block; }
-#tab-cierre:checked ~ main #sec-cierre { display: block; }
-#tab-reportes:checked ~ main #sec-reportes { display: block; }
 #tab-nuevo_prod:checked ~ main #sec-nuevo_prod { display: block; }
 #tab-historial:checked ~ main #sec-historial { display: block; }
 </style>
@@ -37,9 +34,6 @@
 <input type="radio" name="seccion" id="tab-barra" class="control-hidden">
 <input type="radio" name="seccion" id="tab-ingreso" class="control-hidden">
 <input type="radio" name="seccion" id="tab-insumos" class="control-hidden">
-<input type="radio" name="seccion" id="tab-bajas" class="control-hidden">
-<input type="radio" name="seccion" id="tab-cierre" class="control-hidden">
-<input type="radio" name="seccion" id="tab-reportes" class="control-hidden">
 <input type="radio" name="seccion" id="tab-nuevo_prod" class="control-hidden">
 <input type="radio" name="seccion" id="tab-historial" class="control-hidden">
 
@@ -48,8 +42,8 @@
 
 <!-- MENÚ LATERAL -->
 <aside id="menuLateral">
-<div class="overflow-y-auto space-y-4 pr-1">
-<div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-2">
+<div>
+<div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
 <div class="flex items-center space-x-2">
 <span class="text-2xl">📦</span>
 <span class="font-bold text-lg text-white">Menú Principal</span>
@@ -57,45 +51,36 @@
 <label for="menu-toggle" class="text-slate-400 hover:text-white text-2xl p-2 cursor-pointer">✕</label>
 </div>
 
-<nav class="space-y-1">
-<label for="tab-stock" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
+<nav class="space-y-2">
+<label for="tab-stock" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
 <span>📊</span> Stock Depósito y Vitrina
 </label>
-<label for="tab-total" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
+<label for="tab-total" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
 <span>📈</span> Inventario Total
 </label>
-<label for="tab-transferencia" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
+<label for="tab-transferencia" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
 <span>🔄</span> Traspaso a Cafetería
 </label>
-<label for="tab-barra" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
+<label for="tab-barra" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
 <span>☕</span> Ventas & Barra (Café & Más)
 </label>
-<label for="tab-ingreso" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
+<label for="tab-ingreso" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
 <span>📥</span> Ingreso de Mercadería
 </label>
-<label for="tab-insumos" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
+<label for="tab-insumos" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
 <span>🧪</span> Insumos y Depósito Puro
 </label>
-<label for="tab-bajas" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
-<span>🗑️</span> Bajas, Mermas y Cortesías
-</label>
-<label for="tab-cierre" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
-<span>📋</span> Planilla Cierre de Turno
-</label>
-<label for="tab-reportes" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
-<span>📊</span> Reportes e Historial (Excel)
-</label>
-<label for="tab-nuevo_prod" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
+<label for="tab-nuevo_prod" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
 <span>🔒</span> Nuevo Producto (Admin)
 </label>
-<label for="tab-historial" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
-<span>📑</span> Bitácora de Movimientos
+<label for="tab-historial" class="w-full block text-left px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
+<span>📑</span> Historial de Movimientos
 </label>
 </nav>
 </div>
 
-<div class="border-t border-slate-800 pt-3 text-xs text-slate-500 text-center">
-Control de Depósito v7.5
+<div class="border-t border-slate-800 pt-4 text-xs text-slate-500 text-center">
+Control de Depósito v7.0
 </div>
 </aside>
 
@@ -123,7 +108,7 @@ Control de Depósito v7.5
 <!-- CONTENIDO PRINCIPAL -->
 <main class="max-w-4xl mx-auto px-4 mt-5">
 
-<!-- 1. SECCIÓN: STOCK ACTUAL -->
+<!-- 1. SECCIÓN: STOCK ACTUAL (CAFETERÍA ARRIBA, DEPÓSITO ABAJO) -->
 <section id="sec-stock" class="seccion-vista space-y-5">
 <div class="grid grid-cols-2 gap-3">
 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
@@ -136,7 +121,7 @@ Control de Depósito v7.5
 </div>
 </div>
 
-<!-- TABLA CAFETERÍA / VITRINA -->
+<!-- TABLA CAFETERÍA / VITRINA (Solo productos visibles) -->
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
 <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-sky-50/50">
 <h2 class="font-bold text-slate-900 text-sm flex items-center gap-2">
@@ -158,7 +143,7 @@ Control de Depósito v7.5
 </div>
 </div>
 
-<!-- TABLA DEPÓSITO -->
+<!-- TABLA DEPÓSITO (Solo productos visibles) -->
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
 <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
 <h2 class="font-bold text-slate-900 text-sm flex items-center gap-2">
@@ -204,7 +189,7 @@ Control de Depósito v7.5
 </div>
 </section>
 
-<!-- 3. SECCIÓN: TRASPASO (DEPÓSITO -> CAFETERÍA) -->
+<!-- 3. SECCIÓN: TRASPASO (DEPÓSITO -> CAFETERÍA) MÚLTIPLE -->
 <section id="sec-transferencia" class="seccion-vista">
 <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-lg border border-slate-800 space-y-4">
 <div class="border-b border-slate-800 pb-3">
@@ -244,7 +229,7 @@ Control de Depósito v7.5
 </div>
 </section>
 
-<!-- 4. SECCIÓN: VENTAS & BARRA -->
+<!-- 4. SECCIÓN: VENTAS & BARRA (CON DESCUENTO AUTOMÁTICO DE CAFÉ) -->
 <section id="sec-barra" class="seccion-vista">
 <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-lg border border-slate-800 space-y-4">
 <div class="border-b border-slate-800 pb-3">
@@ -289,7 +274,7 @@ Control de Depósito v7.5
 </div>
 </section>
 
-<!-- 5. SECCIÓN: INGRESO DE MERCADERÍA -->
+<!-- 5. SECCIÓN: INGRESO DE MERCADERÍA MÚLTIPLE -->
 <section id="sec-ingreso" class="seccion-vista">
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
 <div class="border-b border-slate-100 pb-3">
@@ -339,7 +324,7 @@ Control de Depósito v7.5
 </div>
 </section>
 
-<!-- 6. SECCIÓN: INSUMOS Y DEPÓSITO PURO -->
+<!-- 6. SECCIÓN: INSUMOS Y DEPÓSITO PURO (Solo insumos: llegan 10, pasan 3, quedan 7) -->
 <section id="sec-insumos" class="seccion-vista space-y-5">
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
 <div class="border-b border-slate-100 pb-3 flex justify-between items-center">
@@ -366,148 +351,7 @@ Control de Depósito v7.5
 </div>
 </section>
 
-<!-- 7. SECCIÓN: BAJAS, MERMAS Y CORTESÍAS (NUEVO) -->
-<section id="sec-bajas" class="seccion-vista">
-<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-<div class="border-b border-slate-100 pb-3">
-<h2 class="text-base font-bold text-rose-600 flex items-center gap-2">
-<span>🗑️</span> Registro de Bajas, Mermas y Cortesías
-</h2>
-<p class="text-xs text-slate-500">Descuenta stock de forma justificada sin afectar caja</p>
-</div>
-
-<div class="space-y-3">
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-<div>
-<label class="block text-xs font-medium text-slate-700 mb-1">Origen del Stock</label>
-<select id="selectUbicacionBaja" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
-<option value="cafeteria">Cafetería / Vitrina</option>
-<option value="deposito">Depósito</option>
-</select>
-</div>
-<div>
-<label class="block text-xs font-medium text-slate-700 mb-1">Motivo</label>
-<select id="selectMotivoBaja" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
-<option value="Cortesía">Cortesía</option>
-<option value="Vencimiento">Vencimiento / Deterioro</option>
-<option value="Rotura">Rotura / Accidente</option>
-<option value="Consumo Personal">Consumo Personal / Staff</option>
-<option value="Otro">Otro Motivo</option>
-</select>
-</div>
-</div>
-
-<div class="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2">
-<div class="sm:col-span-6">
-<label class="block text-xs font-medium text-slate-700 mb-1">Producto / Ítem</label>
-<select id="selectProductoBaja" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none"></select>
-</div>
-<div class="sm:col-span-3">
-<label class="block text-xs font-medium text-slate-700 mb-1">Cantidad</label>
-<input type="number" id="cantBaja" min="1" value="1" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
-</div>
-<div class="sm:col-span-3 flex items-end">
-<button type="button" id="btnAgregarABaja" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-2 rounded-lg transition text-sm flex items-center justify-center gap-1 active:scale-95">
-➕ Agregar
-</button>
-</div>
-</div>
-
-<div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-<p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Lista de Salidas por Bajas/Cortesía:</p>
-<div id="listaBajaActual" class="space-y-2 max-h-48 overflow-y-auto"></div>
-
-<div class="mt-4 pt-3 border-t border-slate-200 flex justify-between items-center">
-<span id="resumenBajaCount" class="text-xs text-slate-500">0 ítems</span>
-<button type="button" id="btnGuardarBajas" class="bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold px-5 py-2.5 rounded-lg transition text-sm shadow-md active:scale-95" disabled>
-✅ Confirmar Salidas
-</button>
-</div>
-</div>
-</div>
-</div>
-</section>
-
-<!-- 8. SECCIÓN: PLANILLA DE CIERRE DE TURNO (NUEVO) -->
-<section id="sec-cierre" class="seccion-vista space-y-4">
-<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-<div class="border-b border-slate-100 pb-3 flex justify-between items-center flex-wrap gap-2">
-<div>
-<h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-<span>📋</span> Planilla de Cierre de Turno
-</h2>
-<p class="text-xs text-slate-500 mt-0.5">Genera el reporte exacto para copiar y pegar en WhatsApp</p>
-</div>
-<div class="flex items-center gap-2">
-<select id="selectTurnoReporte" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-medium bg-slate-50 focus:outline-none">
-<option value="Turno Mañana (08:00 - 15:00)">Turno Mañana (08:00 - 15:00)</option>
-<option value="Turno Tarde (15:00 - 20:00)">Turno Tarde (15:00 - 20:00)</option>
-<option value="Jornada Completa">Jornada Completa</option>
-</select>
-<button type="button" id="btnCopiarWhatsApp" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow flex items-center gap-1.5 active:scale-95">
-📱 Copiar para WhatsApp
-</button>
-</div>
-</div>
-
-<div class="overflow-x-auto">
-<table class="w-full text-left text-sm">
-<thead class="bg-slate-100 text-slate-500 text-xs uppercase border-b border-slate-200">
-<tr>
-<th class="py-3 px-3 font-semibold">Producto en Vitrina</th>
-<th class="py-3 px-3 text-center font-semibold">Stock Actual Cafetería</th>
-<th class="py-3 px-3 text-center font-semibold">Stock Depósito</th>
-</tr>
-</thead>
-<tbody id="tablaCierreTurno" class="divide-y divide-slate-100"></tbody>
-</table>
-</div>
-</div>
-</section>
-
-<!-- 9. SECCIÓN: REPORTES E HISTÓRICO CON EXPORTACIÓN A EXCEL (NUEVO) -->
-<section id="sec-reportes" class="seccion-vista space-y-4">
-<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-<div class="border-b border-slate-100 pb-3 flex justify-between items-center flex-wrap gap-3">
-<div>
-<h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-<span>📊</span> Reportes Históricos y Excel
-</h2>
-<p class="text-xs text-slate-500 mt-0.5">Filtra movimientos por rango de fechas para auditorías</p>
-</div>
-<div class="flex items-center gap-2 flex-wrap">
-<div class="flex items-center gap-1 text-xs">
-<span class="text-slate-500">Desde:</span>
-<input type="date" id="filtroFechaDesde" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none">
-</div>
-<div class="flex items-center gap-1 text-xs">
-<span class="text-slate-500">Hasta:</span>
-<input type="date" id="filtroFechaHasta" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none">
-</div>
-<button type="button" id="btnDescargarExcel" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow flex items-center gap-1 active:scale-95">
-📥 Exportar a Excel (CSV)
-</button>
-</div>
-</div>
-
-<div class="overflow-x-auto max-h-96">
-<table class="w-full text-left text-sm">
-<thead class="bg-slate-100 text-slate-500 text-xs uppercase border-b border-slate-200 sticky top-0">
-<tr>
-<th class="py-3 px-3 font-semibold">Fecha</th>
-<th class="py-3 px-3 font-semibold">Tipo</th>
-<th class="py-3 px-3 font-semibold">Ítems / Detalle</th>
-<th class="py-3 px-3 font-semibold">Origen / Destino</th>
-<th class="py-3 px-3 font-semibold">Usuario</th>
-</tr>
-</thead>
-<tbody id="tablaReporteExcel" class="divide-y divide-slate-100 text-xs"></tbody>
-</table>
-</div>
-</div>
-</section>
-
-<!-- 10. SECCIÓN: NUEVO PRODUCTO / INSUMO Y MANTENIMIENTO (ADMIN) -->
+<!-- 7. SECCIÓN: NUEVO PRODUCTO / INSUMO Y MANTENIMIENTO (ADMIN) -->
 <section id="sec-nuevo_prod" class="seccion-vista">
 <div id="content-nuevo_prod" class="space-y-4">
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
@@ -552,12 +396,12 @@ Control de Depósito v7.5
 </div>
 </section>
 
-<!-- 11. SECCIÓN: HISTORIAL DE MOVIMIENTOS -->
+<!-- 8. SECCIÓN: HISTORIAL DE MOVIMIENTOS -->
 <section id="sec-historial" class="seccion-vista">
 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
 <div class="flex justify-between items-center border-b border-slate-100 pb-3">
 <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-<span>📑</span> Bitácora de Movimientos
+<span>📑</span> Historial de Movimientos
 </h2>
 </div>
 
