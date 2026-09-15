@@ -14,7 +14,6 @@ const firebaseConfig = {
 };
 
 const ADMIN_PIN = "1234";
-const GRAMOS_POR_CAFE = 18; // 18g por cada bebida de café estándar
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
@@ -58,9 +57,10 @@ onValue(inventoryRef, (snapshot) => {
     inventario = rawList.map(item => ({
       id: item.id || Date.now(),
       nombre: item.nombre || 'Insumo',
-      tipo: item.tipo || 'producto',
+      tipo: item.tipo || 'producto', // 'producto' (comestible), 'bebida', o 'insumo'
       stockDeposito: item.stockDeposito !== undefined ? item.stockDeposito : (item.stock || 0),
-      stockCafeteria: item.stockCafeteria !== undefined ? item.stockCafeteria : 0
+      stockCafeteria: item.stockCafeteria !== undefined ? item.stockCafeteria : 0,
+      gramosCafe: item.gramosCafe !== undefined ? item.gramosCafe : 0
     }));
   } else {
     inventario = [];
@@ -82,7 +82,7 @@ onValue(historyRef, (snapshot) => {
   renderTodo();
 });
 
-// --- GESTIÓN DE PERFILES Y SESIÓN (Solo Administrador, Usuario 1 y Usuario 2) ---
+// --- GESTIÓN DE PERFILES Y SESIÓN ---
 
 function verificarSesion() {
   const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
@@ -281,11 +281,13 @@ function guardarProductoNuevo() {
   const tipoInput = document.getElementById('prodTipo');
   const stockDepInput = document.getElementById('prodStockDep');
   const stockCafInput = document.getElementById('prodStockCaf');
+  const gramosCafeInput = document.getElementById('prodGramosCafe');
 
   const nombre = nombreInput.value.trim();
-  const tipo = tipoInput ? tipoInput.value : 'producto';
+  const tipo = tipoInput ? tipoInput.value : 'producto'; // 'producto', 'bebida', o 'insumo'
   const stockDep = parseInt(stockDepInput.value) || 0;
   const stockCaf = parseInt(stockCafInput.value) || 0;
+  const gramosCafe = parseInt(gramosCafeInput?.value) || (tipo === 'bebida' && (nombre.toLowerCase().includes('cafe') || nombre.toLowerCase().includes('café') || nombre.toLowerCase().includes('latte') || nombre.toLowerCase().includes('cappuccino') || nombre.toLowerCase().includes('cortado') || nombre.toLowerCase().includes('mocaccino')) ? 18 : 0);
 
   if (!nombre) {
     alert("Ingresa el nombre del ítem.");
@@ -297,7 +299,8 @@ function guardarProductoNuevo() {
     nombre: nombre,
     tipo: tipo,
     stockDeposito: stockDep,
-    stockCafeteria: tipo === 'insumo' ? 0 : stockCaf
+    stockCafeteria: tipo === 'insumo' ? 0 : stockCaf,
+    gramosCafe: tipo === 'insumo' ? 0 : gramosCafe
   };
 
   inventario.push(nuevoProd);
@@ -307,6 +310,7 @@ function guardarProductoNuevo() {
   if (tipoInput) tipoInput.value = 'producto';
   stockDepInput.value = 0;
   stockCafInput.value = 0;
+  if (gramosCafeInput) gramosCafeInput.value = 0;
 
   alert(`✅ "${nombre}" agregado correctamente.`);
   irASeccion(tipo === 'insumo' ? 'tab-insumos' : 'tab-stock');
@@ -317,6 +321,30 @@ window.eliminarProducto = function(id, nombre) {
 
   if (confirm(`🗑️ ¿Eliminar permanentemente "${nombre}" del inventario?`)) {
     inventario = inventario.filter(p => p.id !== id);
+    set(inventoryRef, inventario);
+  }
+};
+
+window.actualizarTipoProductoAdmin = function(id, selectEl) {
+  if (sessionStorage.getItem('usuarioLogueado') !== 'Administrador') return;
+  const nuevoTipo = selectEl.value;
+  const prod = inventario.find(p => p.id === id);
+  if (prod) {
+    prod.tipo = nuevoTipo;
+    if (nuevoTipo === 'insumo') {
+      prod.gramosCafe = 0;
+      prod.stockCafeteria = 0;
+    }
+    set(inventoryRef, inventario);
+  }
+};
+
+window.actualizarGramosCafeAdmin = function(id, inputEl) {
+  if (sessionStorage.getItem('usuarioLogueado') !== 'Administrador') return;
+  const nuevosGramos = parseInt(inputEl.value) || 0;
+  const prod = inventario.find(p => p.id === id);
+  if (prod) {
+    prod.gramosCafe = nuevosGramos;
     set(inventoryRef, inventario);
   }
 };
@@ -508,10 +536,12 @@ function confirmarIngresoStockMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- VENTAS & BARRA CON CÁLCULO AUTOMÁTICO DE CAFÉ ---
-function agregarABarra() {
-  const select = document.getElementById('selectProductoBarra');
-  const cantInput = document.getElementById('cantBarra');
+// --- VENTAS & BARRA CON DOBLE MENÚ (BEBIDAS Y OTROS) ---
+function agregarABarraDesde(selectId, cantId) {
+  const select = document.getElementById(selectId);
+  const cantInput = document.getElementById(cantId);
+
+  if (!select || !cantInput) return;
 
   const idProd = parseInt(select.value);
   const cantidad = parseInt(cantInput.value) || 1;
@@ -532,29 +562,49 @@ function agregarABarra() {
   if (existente) {
     existente.cantidad += cantidad;
   } else {
-    listaBarraActual.push({ id: prod.id, nombre: prod.nombre, cantidad: cantidad });
+    listaBarraActual.push({ id: prod.id, nombre: prod.nombre, cantidad: cantidad, gramosCafe: prod.gramosCafe });
   }
 
   cantInput.value = 1;
   renderListaBarra();
 }
 
+window.agregarBebidaCafeBarra = function() {
+  agregarABarraDesde('selectBebidaCafe', 'cantBebidaCafe');
+};
+
+window.agregarOtroProductoBarra = function() {
+  agregarABarraDesde('selectOtroBarra', 'cantOtroBarra');
+};
+
 window.quitarDeBarra = function(idx) {
   listaBarraActual.splice(idx, 1);
   renderListaBarra();
 };
 
-function calcularGramosCafeConsumidos() {
-  let tazasCafe = 0;
+function calcularGramosCafeConsumidosEnLista() {
+  let gramosTotales = 0;
   listaBarraActual.forEach(item => {
-    const nombreLower = item.nombre.toLowerCase();
-    if (nombreLower.includes('cafe') || nombreLower.includes('café') || nombreLower.includes('espresso') || 
-        nombreLower.includes('latte') || nombreLower.includes('cappuccino') || nombreLower.includes('mocaccino') || 
-        nombreLower.includes('cortado') || nombreLower.includes('americano') || nombreLower.includes('macchiato')) {
-      tazasCafe += item.cantidad;
+    const prod = inventario.find(p => p.id === item.id);
+    const gramosUnitarios = prod ? prod.gramosCafe : (item.gramosCafe || 0);
+    gramosTotales += item.cantidad * gramosUnitarios;
+  });
+  return gramosTotales;
+}
+
+function calcularGramosCafeTotalesHoy() {
+  const hoyStr = getFechaHoy();
+  let gramosDia = 0;
+  historialMovimientos.forEach(m => {
+    if (m.fechaCorta === hoyStr && (m.tipo === 'VENTA_BARRA' || m.tipo.includes('VENTA')) && m.items) {
+      m.items.forEach(it => {
+        const prod = inventario.find(p => p.nombre === it.nombre);
+        const gramosUnitarios = prod ? prod.gramosCafe : 0;
+        gramosDia += it.cantidad * gramosUnitarios;
+      });
     }
   });
-  return tazasCafe * GRAMOS_POR_CAFE;
+  return gramosDia;
 }
 
 function confirmarConsumoBarra() {
@@ -567,7 +617,7 @@ function confirmarConsumoBarra() {
     }
   });
 
-  const gramosTotales = calcularGramosCafeConsumidos();
+  const gramosTotales = calcularGramosCafeConsumidosEnLista();
   if (gramosTotales > 0) {
     const insumoCafe = inventario.find(p => p.tipo === 'insumo' && (p.nombre.toLowerCase().includes('café') || p.nombre.toLowerCase().includes('cafe') || p.nombre.toLowerCase().includes('grano')));
     if (insumoCafe) {
@@ -584,7 +634,7 @@ function confirmarConsumoBarra() {
   irASeccion('tab-stock');
 }
 
-// --- GESTIÓN DE INSUMOS (DEPÓSITO PURO) ---
+// --- GESTIÓN DE INSUMOS ---
 window.pasarInsumo = function(idInsumo) {
   const prod = inventario.find(p => p.id === idInsumo);
   if (!prod) return;
@@ -610,7 +660,7 @@ window.pasarInsumo = function(idInsumo) {
   alert(`✅ Se pasaron ${cantidad} de "${prod.nombre}". Quedan ${prod.stockDeposito} en depósito.`);
 };
 
-// --- ANULACIÓN CON RESTRICCIÓN DE PERMISOS ---
+// --- ANULACIÓN ---
 window.eliminarRegistroHistorial = function(key, idRegistro) {
   const reg = historialMovimientos.find(m => m.id === idRegistro || m._firebaseKey === key);
   if (!reg) return;
@@ -648,7 +698,7 @@ window.eliminarRegistroHistorial = function(key, idRegistro) {
   alert("✅ Registro anulado y stock reajustado.");
 };
 
-// --- MANTENIMIENTO ADMIN ---
+// --- MANTENIMIENTO ADMIN CON CONFIGURADOR DE TIPO Y GRAMOS DE CAFÉ ---
 
 function renderPanelMantenimiento(nombreUsuario) {
   let panel = document.getElementById('panelMantenimientoAdmin');
@@ -668,13 +718,41 @@ function renderPanelMantenimiento(nombreUsuario) {
     tabContent.appendChild(panel);
   }
 
+  let productosVitrinaHtml = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo')).map(p => `
+    <div class="flex items-center justify-between bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs gap-2">
+      <span class="text-slate-200 font-medium truncate flex-1">${p.nombre}</span>
+      
+      <div class="flex items-center gap-2">
+        <select onchange="actualizarTipoProductoAdmin(${p.id}, this)" class="bg-slate-900 border border-slate-700 text-[11px] text-white rounded px-1.5 py-1 focus:outline-none focus:border-amber-500 font-semibold">
+          <option value="bebida" ${p.tipo === 'bebida' ? 'selected' : ''}>🥤 Bebida</option>
+          <option value="producto" ${p.tipo === 'producto' ? 'selected' : ''}>🍫 Comestible</option>
+        </select>
+
+        ${p.tipo === 'bebida' ? `
+          <div class="flex items-center gap-1">
+            <input type="number" min="0" value="${p.gramosCafe}" onchange="actualizarGramosCafeAdmin(${p.id}, this)" class="w-14 bg-slate-900 border border-slate-700 text-center text-amber-400 font-mono font-bold rounded px-1 py-1 focus:outline-none focus:border-amber-500 text-xs" title="Gramos de café">
+            <span class="text-[10px] text-slate-400">g</span>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+
   panel.innerHTML = `
     <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
       <span class="text-lg">⚙️</span>
-      <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Mantenimiento de Datos</h3>
+      <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Configuración y Reclasificación de Ítems</h3>
     </div>
 
-    <div class="space-y-2 text-xs">
+    <div class="space-y-3 text-xs">
+      <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-2">
+        <label class="font-semibold text-slate-300">Clasificar Ítems (Bebidas vs Comestibles y Gramos de Café):</label>
+        <p class="text-[11px] text-slate-400">Mueve cualquier producto existente a Bebida o Comestible al instante y ajusta sus gramos si lleva café.</p>
+        <div class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+          ${productosVitrinaHtml || '<p class="text-slate-500 italic">No hay productos en vitrina.</p>'}
+        </div>
+      </div>
+
       <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex flex-col gap-2">
         <label class="font-semibold text-slate-300">Borrar Historial por Antigüedad:</label>
         <div class="flex gap-2">
@@ -701,7 +779,7 @@ window.ejecutarBorradoHistorial = function() {
   const opcion = select.value;
 
   if (opcion === 'todo') {
-    if (confirm("⚠️ ¿Confirmas borrar TODO el historial permanentemente?\nEl contador de movimientos de hoy volverá a 0.")) {
+    if (confirm("⚠️ ¿Confirmas borrar TODO el historial permanentemente?")) {
       remove(historyRef).then(() => {
         historialMovimientos = [];
         renderTodo();
@@ -731,7 +809,7 @@ window.ejecutarBorradoHistorial = function() {
       remove(historyRef).then(() => {
         historialMovimientos = [];
         renderTodo();
-        alert("✅ Historial borrado (no quedaban registros en ese periodo).");
+        alert("✅ Historial borrado.");
       });
     }
   }
@@ -747,7 +825,7 @@ window.reiniciarStockTodo = function() {
   }
 };
 
-// --- PLANILLA DE CIERRE DE TURNO (MAÑANA vs TARDE CON CORTE A LAS 15:00) ---
+// --- PLANILLA DE CIERRE DE TURNO & WHATSAPP ---
 
 function renderCierreTurno() {
   const tbodyCierre = document.getElementById('tablaCierreTurno');
@@ -760,7 +838,8 @@ function renderCierreTurno() {
 
   productosVisibles.forEach(prod => {
     let ventasTurno = 0;
-    let entradasTurno = 0;
+    let traspasosTurno = 0;
+    let ingresosTurno = 0;
 
     historialMovimientos.forEach(m => {
       if (m.fechaCorta === hoyStr && m.items) {
@@ -774,14 +853,16 @@ function renderCierreTurno() {
             } else if (tipoTurno.includes('Tarde')) {
               incluir = horaItem > "15:00";
             } else {
-              incluir = true; // Jornada Completa
+              incluir = true;
             }
 
             if (incluir) {
               if (m.tipo === 'VENTA_BARRA' || m.tipo.includes('VENTA')) {
                 ventasTurno += it.cantidad;
-              } else if (m.tipo === 'TRASPASO' || (m.tipo === 'INGRESO' && m.origen && m.origen.includes('Cafetería'))) {
-                entradasTurno += it.cantidad;
+              } else if (m.tipo === 'TRASPASO') {
+                traspasosTurno += it.cantidad;
+              } else if (m.tipo === 'INGRESO' && m.origen && m.origen.includes('Cafetería')) {
+                ingresosTurno += it.cantidad;
               }
             }
           }
@@ -793,8 +874,10 @@ function renderCierreTurno() {
     tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
     tr.innerHTML = `
       <td class="py-3 px-3 font-semibold text-slate-800">${prod.nombre}</td>
-      <td class="py-3 px-3 text-center text-sky-700 font-mono font-bold">${prod.stockCafeteria}</td>
-      <td class="py-3 px-3 text-center text-slate-600 font-mono">${prod.stockDeposito}</td>
+      <td class="py-3 px-3 text-center text-sky-700 font-mono font-bold">${ventasTurno}</td>
+      <td class="py-3 px-3 text-center text-indigo-600 font-mono">${traspasosTurno > 0 ? `+${traspasosTurno}` : '0'}</td>
+      <td class="py-3 px-3 text-center text-emerald-600 font-mono">${ingresosTurno > 0 ? `+${ingresosTurno}` : '0'}</td>
+      <td class="py-3 px-3 text-center text-slate-700 font-mono font-bold">${prod.stockCafeteria}</td>
     `;
     tbodyCierre.appendChild(tr);
   });
@@ -808,13 +891,22 @@ function copiarCierreWhatsApp() {
   let texto = `📋 *CIERRE DE TURNO - ${tipoTurno.toUpperCase()}*\n`;
   texto += `📅 Fecha: ${hoyStr}\n`;
   texto += `👤 Usuario: ${usuario}\n\n`;
-  texto += `☕ *VENTAS DEL TURNO:*\n`;
 
   let hayVentas = false;
+  let hayTraspasos = false;
+  let hayIngresos = false;
+
+  let textoVentas = `☕ *VENTAS DEL TURNO:*\n`;
+  let textoTraspasos = `🔄 *TRASPASOS (Depósito ➔ Cafetería):*\n`;
+  let textoIngresos = `📦 *INGRESOS A CAFETERÍA:*\n`;
+
   const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
 
   productosVisibles.forEach(prod => {
     let ventasTurno = 0;
+    let traspasosTurno = 0;
+    let ingresosTurno = 0;
+
     historialMovimientos.forEach(m => {
       if (m.fechaCorta === hoyStr && m.items) {
         m.items.forEach(it => {
@@ -829,8 +921,10 @@ function copiarCierreWhatsApp() {
               incluir = true;
             }
 
-            if (incluir && (m.tipo === 'VENTA_BARRA' || m.tipo.includes('VENTA'))) {
-              ventasTurno += it.cantidad;
+            if (incluir) {
+              if (m.tipo === 'VENTA_BARRA' || m.tipo.includes('VENTA')) ventasTurno += it.cantidad;
+              if (m.tipo === 'TRASPASO') traspasosTurno += it.cantidad;
+              if (m.tipo === 'INGRESO' && m.origen && m.origen.includes('Cafetería')) ingresosTurno += it.cantidad;
             }
           }
         });
@@ -839,21 +933,29 @@ function copiarCierreWhatsApp() {
 
     if (ventasTurno > 0) {
       hayVentas = true;
-      texto += `• ${prod.nombre}: ${ventasTurno} unids.\n`;
+      textoVentas += `• ${prod.nombre}: ${ventasTurno} unids.\n`;
+    }
+    if (traspasosTurno > 0) {
+      hayTraspasos = true;
+      textoTraspasos += `• ${prod.nombre}: +${traspasosTurno} unids.\n`;
+    }
+    if (ingresosTurno > 0) {
+      hayIngresos = true;
+      textoIngresos += `• ${prod.nombre}: +${ingresosTurno} unids.\n`;
     }
   });
 
-  if (!hayVentas) {
-    texto += `_(Sin ventas registradas en este turno)_\n`;
-  }
+  if (hayVentas) texto += textoVentas + `\n`;
+  if (hayTraspasos) texto += textoTraspasos + `\n`;
+  if (hayIngresos) texto += textoIngresos + `\n`;
 
-  texto += `\n📦 *STOCK ACTUAL EN CAFETERÍA:*\n`;
+  texto += `📊 *STOCK ACTUAL EN CAFETERÍA:*\n`;
   productosVisibles.forEach(prod => {
     texto += `• ${prod.nombre}: ${prod.stockCafeteria}\n`;
   });
 
   navigator.clipboard.writeText(texto).then(() => {
-    alert("✅ ¡Reporte copiado al portapapeles para WhatsApp!");
+    alert("✅ ¡Reporte copiado al portapapeles para WhatsApp con ventas, traspasos e ingresos!");
   }).catch(err => {
     alert("Error al copiar: " + err);
   });
@@ -870,6 +972,15 @@ function renderTodo() {
   renderListaIngreso();
   renderHistorial();
   renderCierreTurno();
+  renderContadorCafeDiario();
+}
+
+function renderContadorCafeDiario() {
+  const elContador = document.getElementById('statGramosCafeHoy');
+  if (elContador) {
+    const gramosTotalesHoy = calcularGramosCafeTotalesHoy();
+    elContador.textContent = `${gramosTotalesHoy} g`;
+  }
 }
 
 function renderInventario() {
@@ -997,13 +1108,15 @@ function renderInsumos() {
 
 function renderSelectores() {
   const selTraspaso = document.getElementById('selectProductoTraspaso');
-  const selBarra = document.getElementById('selectProductoBarra');
+  const selBebidaCafe = document.getElementById('selectBebidaCafe');
+  const selOtroBarra = document.getElementById('selectOtroBarra');
   const selIngreso = document.getElementById('selectProductoIngreso');
 
-  if (!selTraspaso || !selBarra || !selIngreso) return;
+  if (!selTraspaso || !selIngreso) return;
 
   selTraspaso.innerHTML = '';
-  selBarra.innerHTML = '';
+  if (selBebidaCafe) selBebidaCafe.innerHTML = '';
+  if (selOtroBarra) selOtroBarra.innerHTML = '';
   selIngreso.innerHTML = '';
 
   const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
@@ -1017,12 +1130,20 @@ function renderSelectores() {
     selTraspaso.appendChild(optT);
   });
 
+  // Separar Bebidas (con o sin café) de Otros Productos (Comestibles) en el doble menú de barra
   productosVisibles.forEach(prod => {
-    const optB = document.createElement('option');
-    optB.value = prod.id;
-    optB.textContent = `${prod.nombre} (Cafetería: ${prod.stockCafeteria})`;
-    if (prod.stockCafeteria <= 0) optB.disabled = true;
-    selBarra.appendChild(optB);
+    const opt = document.createElement('option');
+    opt.value = prod.id;
+    opt.textContent = `${prod.nombre} (Cafetería: ${prod.stockCafeteria})${prod.gramosCafe > 0 ? ` [${prod.gramosCafe}g café]` : ''}`;
+    if (prod.stockCafeteria <= 0) opt.disabled = true;
+
+    if (prod.tipo === 'bebida' && selBebidaCafe) {
+      selBebidaCafe.appendChild(opt);
+    } else if (prod.tipo === 'producto' && selOtroBarra) {
+      selOtroBarra.appendChild(opt);
+    } else if (selBebidaCafe) {
+      selBebidaCafe.appendChild(opt);
+    }
   });
 
   todosOrdenados.forEach(prod => {
@@ -1056,10 +1177,13 @@ function renderListaBarra() {
 
   listaBarraActual.forEach((item, idx) => {
     totalUnidades += item.cantidad;
+    const prod = inventario.find(p => p.id === item.id);
+    const gramos = prod ? prod.gramosCafe : (item.gramosCafe || 0);
+
     const div = document.createElement('div');
     div.className = 'flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs';
     div.innerHTML = `
-      <span class="text-slate-200">${item.nombre}</span>
+      <span class="text-slate-200">${item.nombre} ${gramos > 0 ? `<span class="text-amber-400 text-[10px]">(${gramos * item.cantidad}g café)</span>` : ''}</span>
       <div class="flex items-center gap-2">
         <span class="bg-sky-950 text-sky-300 font-bold px-2 py-0.5 rounded border border-sky-800">-${item.cantidad}</span>
         <button type="button" onclick="quitarDeBarra(${idx})" class="text-slate-500 hover:text-rose-400 font-bold px-1">✕</button>
@@ -1070,7 +1194,7 @@ function renderListaBarra() {
 
   if (resCount) resCount.textContent = `${listaBarraActual.length} tipo(s) | Total: ${totalUnidades}`;
 
-  const gramosCalculados = calcularGramosCafeConsumidos();
+  const gramosCalculados = calcularGramosCafeConsumidosEnLista();
   if (gramosCalculados > 0 && infoCafe && spanGramos) {
     spanGramos.textContent = `${gramosCalculados}g`;
     infoCafe.classList.remove('hidden');
@@ -1275,7 +1399,8 @@ function iniciarApp() {
   document.getElementById('btnGuardarNuevoProd')?.addEventListener('click', guardarProductoNuevo);
   document.getElementById('btnAgregarATraspaso')?.addEventListener('click', agregarATraspaso);
   document.getElementById('btnConfirmarTraspaso')?.addEventListener('click', confirmarTraspasoMultiple);
-  document.getElementById('btnAgregarABarra')?.addEventListener('click', agregarABarra);
+  document.getElementById('btnAgregarBebidaCafe')?.addEventListener('click', agregarBebidaCafeBarra);
+  document.getElementById('btnAgregarOtroBarra')?.addEventListener('click', agregarOtroProductoBarra);
   document.getElementById('btnConfirmarBarra')?.addEventListener('click', confirmarConsumoBarra);
   document.getElementById('btnAgregarAIngreso')?.addEventListener('click', agregarAIngreso);
   document.getElementById('btnGuardarIngreso')?.addEventListener('click', confirmarIngresoStockMultiple);
