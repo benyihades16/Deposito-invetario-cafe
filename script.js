@@ -1302,14 +1302,12 @@ function renderHistorial() {
   const wrapper = document.createElement('div');
   wrapper.className = 'space-y-4 text-xs';
 
-  // Recorrer fechas ordenadas de la más reciente a la más antigua
   Object.keys(agrupadosPorFecha).sort().reverse().forEach(fechaKey => {
     const movimientosDia = agrupadosPorFecha[fechaKey];
 
     const seccionDia = document.createElement('div');
     seccionDia.className = 'space-y-3';
 
-    // Cabecera del Día
     const headerDia = document.createElement('div');
     headerDia.className = 'bg-slate-100 border border-slate-300 rounded-xl px-4 py-2.5 flex justify-between items-center shadow-sm';
     headerDia.innerHTML = `
@@ -1322,10 +1320,9 @@ function renderHistorial() {
     `;
     seccionDia.appendChild(headerDia);
 
-    // Tarjetas individuales por cada movimiento (Venta, Traspasos, Ingresos)
     movimientosDia.forEach(reg => {
       const esCreador = reg.usuario === usuarioActual;
-      const puedeBorrar = esAdmin || esCreador;
+      const puedeBorrarTotal = esAdmin || esCreador;
 
       const tipoUpper = (reg.tipo || '').toUpperCase();
       let colorBadge = 'bg-slate-800 text-slate-200 border-slate-700';
@@ -1351,15 +1348,22 @@ function renderHistorial() {
 
       let itemsHtml = '';
       if (reg.items && Array.isArray(reg.items)) {
-        reg.items.forEach(item => {
+        reg.items.forEach((item, indexItem) => {
+          const puedeBorrarItem = esAdmin || esCreador;
           itemsHtml += `
             <div class="flex justify-between items-center border-b border-slate-100 py-1.5 last:border-b-0">
               <span class="text-slate-800 font-medium">
                 ${item.nombre || 'Item'} ${item.hora ? `<span class="text-slate-400 font-normal text-[11px]">(${item.hora})</span>` : ''}
               </span>
-              <span class="font-mono font-bold ${colorCantidad}">
-                ${tipoUpper.includes('INGRESO') ? '+' : '-'}${item.cantidad || 0}
-              </span>
+              <div class="flex items-center gap-3">
+                <span class="font-mono font-bold ${colorCantidad}">
+                  ${tipoUpper.includes('INGRESO') ? '+' : '-'}${item.cantidad || 0}
+                </span>
+                ${puedeBorrarItem ? `
+                  <button onclick="eliminarItemHistorial('${reg._firebaseKey}', ${reg.id}, ${indexItem})" class="text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-1.5 py-0.5 rounded border border-rose-200 font-bold text-[10px]" title="Anular este ítem">
+                    ✕
+                  </button>` : ''}
+              </div>
             </div>
           `;
         });
@@ -1374,7 +1378,7 @@ function renderHistorial() {
             <span class="text-slate-700 font-semibold text-xs">👤 ${reg.usuario || 'Desconocido'}</span>
           </div>
           <div class="flex items-center gap-2">
-            ${puedeBorrar ? `<button onclick="eliminarRegistroHistorial('${reg._firebaseKey}', ${reg.id})" class="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg border border-rose-200 font-bold transition text-xs flex items-center gap-1">🗑️ Anular</button>` : ''}
+            ${puedeBorrarTotal && reg.items.length > 1 ? `<button onclick="eliminarRegistroHistorial('${reg._firebaseKey}', ${reg.id})" class="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-2 py-0.5 rounded-lg border border-rose-200 font-bold transition text-[11px]">Anular Todo</button>` : ''}
           </div>
         </div>
 
