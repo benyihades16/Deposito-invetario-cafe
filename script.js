@@ -27,6 +27,7 @@ let historialMovimientos = [];
 let listaBarraActual = [];
 let listaTraspasoActual = [];
 let listaIngresoActual = [];
+let listaBajaActual = [];
 
 // Helper para formato de fecha único y estándar (DD/MM/YYYY)
 function getFechaHoy() {
@@ -129,23 +130,29 @@ function mostrarPantallaPerfiles() {
         <p class="text-sm text-slate-400">¿Quién va a usar el sistema hoy?</p>
       </div>
 
-      <div class="grid grid-cols-3 gap-3 pt-2">
-        <button onclick="seleccionarPerfil('Administrador', true)" class="group flex flex-col items-center p-3 bg-slate-900 border-2 border-slate-800 hover:border-amber-500 rounded-2xl transition transform hover:scale-105 shadow-lg">
-          <div class="w-12 h-12 bg-amber-500/10 border border-amber-500/30 rounded-full flex items-center justify-center text-2xl mb-2 group-hover:bg-amber-500/20 transition">👑</div>
-          <span class="font-bold text-xs text-slate-200">Administrador</span>
-          <span class="text-[9px] text-amber-400 font-semibold mt-1 bg-amber-950/60 px-1.5 py-0.5 rounded-full border border-amber-800/50">🔒 PIN</span>
+      <div class="grid grid-cols-2 gap-4 pt-2">
+        <button onclick="seleccionarPerfil('Administrador', true)" class="group flex flex-col items-center p-4 bg-slate-900 border-2 border-slate-800 hover:border-amber-500 rounded-2xl transition transform hover:scale-105 shadow-lg">
+          <div class="w-16 h-16 bg-amber-500/10 border border-amber-500/30 rounded-full flex items-center justify-center text-3xl mb-2 group-hover:bg-amber-500/20 transition">👑</div>
+          <span class="font-bold text-sm text-slate-200">Administrador</span>
+          <span class="text-[10px] text-amber-400 font-semibold mt-1 bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-800/50">🔒 Pide PIN</span>
         </button>
 
-        <button onclick="seleccionarPerfil('Usuario 1', false)" class="group flex flex-col items-center p-3 bg-slate-900 border-2 border-slate-800 hover:border-sky-500 rounded-2xl transition transform hover:scale-105 shadow-lg">
-          <div class="w-12 h-12 bg-sky-500/10 border border-sky-500/30 rounded-full flex items-center justify-center text-2xl mb-2 group-hover:bg-sky-500/20 transition">👷‍♂️</div>
-          <span class="font-bold text-xs text-slate-200">Usuario 1</span>
-          <span class="text-[9px] text-sky-400 font-semibold mt-1 bg-sky-950/60 px-1.5 py-0.5 rounded-full border border-sky-800/50">Libre</span>
+        <button onclick="seleccionarPerfil('Usuario 1', false)" class="group flex flex-col items-center p-4 bg-slate-900 border-2 border-slate-800 hover:border-sky-500 rounded-2xl transition transform hover:scale-105 shadow-lg">
+          <div class="w-16 h-16 bg-sky-500/10 border border-sky-500/30 rounded-full flex items-center justify-center text-3xl mb-2 group-hover:bg-sky-500/20 transition">👷‍♂️</div>
+          <span class="font-bold text-sm text-slate-200">Usuario 1</span>
+          <span class="text-[10px] text-sky-400 font-semibold mt-1 bg-sky-950/60 px-2 py-0.5 rounded-full border border-sky-800/50">Acceso Libre</span>
         </button>
 
-        <button onclick="seleccionarPerfil('Usuario 2', false)" class="group flex flex-col items-center p-3 bg-slate-900 border-2 border-slate-800 hover:border-emerald-500 rounded-2xl transition transform hover:scale-105 shadow-lg">
-          <div class="w-12 h-12 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center text-2xl mb-2 group-hover:bg-emerald-500/20 transition">👷‍♀️</div>
-          <span class="font-bold text-xs text-slate-200">Usuario 2</span>
-          <span class="text-[9px] text-emerald-400 font-semibold mt-1 bg-emerald-950/60 px-1.5 py-0.5 rounded-full border border-emerald-800/50">Libre</span>
+        <button onclick="seleccionarPerfil('Usuario 2', false)" class="group flex flex-col items-center p-4 bg-slate-900 border-2 border-slate-800 hover:border-emerald-500 rounded-2xl transition transform hover:scale-105 shadow-lg">
+          <div class="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center text-3xl mb-2 group-hover:bg-emerald-500/20 transition">👷‍♀️</div>
+          <span class="font-bold text-sm text-slate-200">Usuario 2</span>
+          <span class="text-[10px] text-emerald-400 font-semibold mt-1 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-800/50">Acceso Libre</span>
+        </button>
+
+        <button onclick="seleccionarPerfil('Usuario 3', false)" class="group flex flex-col items-center p-4 bg-slate-900 border-2 border-slate-800 hover:border-purple-500 rounded-2xl transition transform hover:scale-105 shadow-lg">
+          <div class="w-16 h-16 bg-purple-500/10 border border-purple-500/30 rounded-full flex items-center justify-center text-3xl mb-2 group-hover:bg-purple-500/20 transition">🧑‍🔧</div>
+          <span class="font-bold text-sm text-slate-200">Usuario 3</span>
+          <span class="text-[10px] text-purple-400 font-semibold mt-1 bg-purple-950/60 px-2 py-0.5 rounded-full border border-purple-800/50">Acceso Libre</span>
         </button>
       </div>
     </div>
@@ -260,6 +267,7 @@ window.cerrarSesion = function() {
     listaBarraActual = [];
     listaTraspasoActual = [];
     listaIngresoActual = [];
+    listaBajaActual = [];
     mostrarPantallaPerfiles();
   }
 };
@@ -327,8 +335,7 @@ function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   const usuario = sessionStorage.getItem('usuarioLogueado') || 'Usuario';
   const ahora = new Date();
   const fechaCorta = getFechaHoy();
-  const horaStr = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-  const horaCompletaStr = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const horaStr = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   const regExistente = historialMovimientos.find(m => 
     m.fechaCorta === fechaCorta && 
@@ -343,9 +350,9 @@ function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
       const index = itemsActuales.findIndex(it => it.nombre === nuevo.nombre);
       if (index >= 0) {
         itemsActuales[index].cantidad += nuevo.cantidad;
-        itemsActuales[index].hora = horaCompletaStr;
+        itemsActuales[index].hora = horaStr;
       } else {
-        itemsActuales.push({ nombre: nuevo.nombre, cantidad: nuevo.cantidad, hora: horaCompletaStr });
+        itemsActuales.push({ nombre: nuevo.nombre, cantidad: nuevo.cantidad, hora: horaStr });
       }
     });
 
@@ -354,8 +361,7 @@ function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
       tipo: tipo,
       usuario: usuario,
       fechaCorta: fechaCorta,
-      fecha: `${fechaCorta} (Último: ${horaCompletaStr})`,
-      horaRegistro: horaStr,
+      fecha: `${fechaCorta} (Último: ${horaStr})`,
       origen: origen || 'General',
       items: itemsActuales
     };
@@ -367,17 +373,16 @@ function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
       tipo: tipo,
       usuario: usuario,
       fechaCorta: fechaCorta,
-      fecha: `${fechaCorta} - ${horaCompletaStr}`,
-      horaRegistro: horaStr,
+      fecha: `${fechaCorta} - ${horaStr}`,
       origen: origen || 'General',
-      items: itemsNuevos.map(it => ({ ...it, hora: horaCompletaStr }))
+      items: itemsNuevos.map(it => ({ ...it, hora: horaStr }))
     };
 
     push(historyRef, nuevoRegistro);
   }
 }
 
-// --- TRASPOS MÚLTIPLES ---
+// --- TRASPASOS MÚLTIPLES ---
 function agregarATraspaso() {
   const select = document.getElementById('selectProductoTraspaso');
   const cantInput = document.getElementById('cantTraspaso');
@@ -508,6 +513,84 @@ function confirmarIngresoStockMultiple() {
   irASeccion('tab-stock');
 }
 
+// --- BAJAS, VENCIMIENTOS Y CORTESÍAS ---
+function agregarABaja() {
+  const selectUbicacion = document.getElementById('selectUbicacionBaja');
+  const selectProd = document.getElementById('selectProductoBaja');
+  const cantInput = document.getElementById('cantBaja');
+  const motivoInput = document.getElementById('selectMotivoBaja');
+
+  const idProd = parseInt(selectProd.value);
+  const cantidad = parseInt(cantInput.value) || 0;
+  const ubicacion = selectUbicacion.value;
+  const motivo = motivoInput.value;
+
+  if (!idProd || cantidad <= 0) return;
+
+  const prod = inventario.find(p => p.id === idProd);
+  if (!prod) return;
+
+  const stockDisponible = ubicacion === 'cafeteria' ? prod.stockCafeteria : prod.stockDeposito;
+  if (cantidad > stockDisponible) {
+    alert(`Stock insuficiente en ${ubicacion === 'cafeteria' ? 'Cafetería' : 'Depósito'}. Stock actual: ${stockDisponible}`);
+    return;
+  }
+
+  const existente = listaBajaActual.find(it => it.id === idProd && it.ubicacion === ubicacion && it.motivo === motivo);
+  if (existente) {
+    existente.cantidad += cantidad;
+  } else {
+    listaBajaActual.push({
+      id: prod.id,
+      nombre: prod.nombre,
+      cantidad: cantidad,
+      ubicacion: ubicacion,
+      motivo: motivo,
+      origenTexto: `Baja/Cortesía (${motivo} - ${ubicacion === 'cafeteria' ? 'Cafetería' : 'Depósito'})`
+    });
+  }
+
+  cantInput.value = 1;
+  renderListaBaja();
+}
+
+window.quitarDeBaja = function(idx) {
+  listaBajaActual.splice(idx, 1);
+  renderListaBaja();
+};
+
+function confirmarBajasMultiple() {
+  if (listaBajaActual.length === 0) return;
+
+  listaBajaActual.forEach(item => {
+    const prod = inventario.find(p => p.id === item.id);
+    if (prod) {
+      if (item.ubicacion === 'cafeteria') {
+        prod.stockCafeteria = Math.max(0, prod.stockCafeteria - item.cantidad);
+      } else {
+        prod.stockDeposito = Math.max(0, prod.stockDeposito - item.cantidad);
+      }
+    }
+  });
+
+  set(inventoryRef, inventario);
+
+  const grupos = {};
+  listaBajaActual.forEach(it => {
+    if (!grupos[it.origenTexto]) grupos[it.origenTexto] = [];
+    grupos[it.origenTexto].push({ nombre: it.nombre, cantidad: it.cantidad });
+  });
+
+  Object.keys(grupos).forEach(origen => {
+    registrarMovimientoEnTurno('BAJA_CORTESIA', grupos[origen], origen);
+  });
+
+  listaBajaActual = [];
+  alert(`✅ Salidas por baja/cortesía registradas correctamente (sin afectar caja).`);
+  renderListaBaja();
+  irASeccion('tab-stock');
+}
+
 // --- VENTAS & BARRA CON CÁLCULO AUTOMÁTICO DE CAFÉ ---
 function agregarABarra() {
   const select = document.getElementById('selectProductoBarra');
@@ -584,7 +667,7 @@ function confirmarConsumoBarra() {
   irASeccion('tab-stock');
 }
 
-// --- GESTIÓN DE INSUMOS (DEPÓSITO PURO) ---
+// --- GESTIÓN DE INSOMAS (DEPÓSITO PURO) ---
 window.pasarInsumo = function(idInsumo) {
   const prod = inventario.find(p => p.id === idInsumo);
   if (!prod) return;
@@ -610,7 +693,61 @@ window.pasarInsumo = function(idInsumo) {
   alert(`✅ Se pasaron ${cantidad} de "${prod.nombre}". Quedan ${prod.stockDeposito} en depósito.`);
 };
 
-// --- ANULACIÓN CON RESTRICCIÓN DE PERMISOS ---
+// --- ANULACIÓN POR ÍTEM O TICKET COMPLETO ---
+
+window.eliminarItemHistorial = function(key, idRegistro, nombreItem) {
+  const reg = historialMovimientos.find(m => m.id === idRegistro || m._firebaseKey === key);
+  if (!reg) return;
+
+  const usuarioActual = sessionStorage.getItem('usuarioLogueado');
+  const esAdmin = usuarioActual === 'Administrador';
+  const esCreador = reg.usuario === usuarioActual;
+
+  if (!esAdmin && !esCreador) {
+    alert("⛔ No tienes permisos para modificar este registro.");
+    return;
+  }
+
+  if (!confirm(`⚠️ ¿Deseas eliminar únicamente el producto "${nombreItem}" de este ticket?\nEl stock de este producto se reajustará automáticamente.`)) return;
+
+  // Revertir stock del ítem específico
+  const itemAfec = reg.items.find(it => it.nombre === nombreItem);
+  if (itemAfec) {
+    const prod = inventario.find(p => p.nombre === nombreItem);
+    if (prod) {
+      if (reg.tipo === 'VENTA_BARRA' || reg.tipo.includes('VENTA')) {
+        prod.stockCafeteria += itemAfec.cantidad;
+      } else if (reg.tipo === 'TRASPASO') {
+        prod.stockDeposito += itemAfec.cantidad;
+        prod.stockCafeteria = Math.max(0, prod.stockCafeteria - itemAfec.cantidad);
+      } else if (reg.tipo === 'TRASPASO_INSUMO') {
+        prod.stockDeposito += itemAfec.cantidad;
+      } else if (reg.tipo === 'INGRESO') {
+        if (reg.origen && reg.origen.includes('Cafetería')) prod.stockCafeteria = Math.max(0, prod.stockCafeteria - itemAfec.cantidad);
+        else prod.stockDeposito = Math.max(0, prod.stockDeposito - itemAfec.cantidad);
+      } else if (reg.tipo === 'BAJA_CORTESIA') {
+        if (reg.origen && reg.origen.includes('Cafetería')) prod.stockCafeteria += itemAfec.cantidad;
+        else prod.stockDeposito += itemAfec.cantidad;
+      }
+    }
+  }
+
+  // Filtrar el ítem fuera de la lista
+  const nuevosItems = reg.items.filter(it => it.nombre !== nombreItem);
+
+  if (nuevosItems.length === 0) {
+    // Si no quedan ítems, se borra el registro completo
+    remove(ref(db, `historial/${key || reg._firebaseKey}`));
+  } else {
+    // Actualizar registro con los ítems restantes
+    const regActualizado = { ...reg, items: nuevosItems };
+    delete regActualizado._firebaseKey;
+    set(ref(db, `historial/${key || reg._firebaseKey}`), regActualizado);
+  }
+
+  set(inventoryRef, inventario);
+  alert("✅ Ítem eliminado y stock reajustado.");
+};
 
 window.eliminarRegistroHistorial = function(key, idRegistro) {
   const reg = historialMovimientos.find(m => m.id === idRegistro || m._firebaseKey === key);
@@ -621,11 +758,11 @@ window.eliminarRegistroHistorial = function(key, idRegistro) {
   const esCreador = reg.usuario === usuarioActual;
 
   if (!esAdmin && !esCreador) {
-    alert("⛔ No tienes permisos para anular este registro porque pertenece a otro usuario.");
+    alert("⛔ No tienes permisos para anular este registro.");
     return;
   }
 
-  if (!confirm(`⚠️ ¿Anular este registro de ${reg.tipo} (Creado por: ${reg.usuario})?\nEl stock afectado se devolverá automáticamente.`)) return;
+  if (!confirm(`⚠️ ¿Anular TODO el registro de ${reg.tipo} (Creado por: ${reg.usuario})?\nEl stock afectado se devolverá automáticamente.`)) return;
 
   reg.items.forEach(item => {
     const prod = inventario.find(p => p.nombre === item.nombre);
@@ -640,6 +777,9 @@ window.eliminarRegistroHistorial = function(key, idRegistro) {
       } else if (reg.tipo === 'INGRESO') {
         if (reg.origen && reg.origen.includes('Cafetería')) prod.stockCafeteria = Math.max(0, prod.stockCafeteria - item.cantidad);
         else prod.stockDeposito = Math.max(0, prod.stockDeposito - item.cantidad);
+      } else if (reg.tipo === 'BAJA_CORTESIA') {
+        if (reg.origen && reg.origen.includes('Cafetería')) prod.stockCafeteria += item.cantidad;
+        else prod.stockDeposito += item.cantidad;
       }
     }
   });
@@ -748,7 +888,7 @@ window.reiniciarStockTodo = function() {
   }
 };
 
-// --- RENDERIZADO GENERAL Y FILTRADO CON HORARIOS DE TURNO ---
+// --- RENDERIZADO GENERAL Y FILTRADO ---
 
 function renderTodo() {
   renderInventario();
@@ -757,6 +897,9 @@ function renderTodo() {
   renderListaBarra();
   renderListaTraspaso();
   renderListaIngreso();
+  renderListaBaja();
+  renderCierreTurno();
+  renderReporteExcel();
   renderHistorial();
 }
 
@@ -774,7 +917,6 @@ function renderInventario() {
       let ventasHoy = 0;
       let entradasHoy = 0;
 
-      // Analizamos el historial del día actual para este producto
       historialMovimientos.forEach(m => {
         if (m.fechaCorta === hoyStr && m.items) {
           m.items.forEach(it => {
@@ -785,6 +927,8 @@ function renderInventario() {
                 entradasHoy += it.cantidad;
               } else if (m.tipo === 'INGRESO' && m.origen && m.origen.includes('Cafetería')) {
                 entradasHoy += it.cantidad;
+              } else if (m.tipo === 'BAJA_CORTESIA' && m.origen && m.origen.includes('Cafetería')) {
+                ventasHoy += it.cantidad; // Las bajas restan stock igual que ventas en vitrina
               }
             }
           });
@@ -888,12 +1032,14 @@ function renderSelectores() {
   const selTraspaso = document.getElementById('selectProductoTraspaso');
   const selBarra = document.getElementById('selectProductoBarra');
   const selIngreso = document.getElementById('selectProductoIngreso');
+  const selBaja = document.getElementById('selectProductoBaja');
 
-  if (!selTraspaso || !selBarra || !selIngreso) return;
+  if (!selTraspaso || !selBarra || !selIngreso || !selBaja) return;
 
   selTraspaso.innerHTML = '';
   selBarra.innerHTML = '';
   selIngreso.innerHTML = '';
+  selBaja.innerHTML = '';
 
   const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
   const todosOrdenados = ordenarInventario(inventario);
@@ -919,6 +1065,13 @@ function renderSelectores() {
     optI.value = prod.id;
     optI.textContent = `${prod.nombre} ${prod.tipo === 'insumo' ? '[Insumo]' : ''}`;
     selIngreso.appendChild(optI);
+  });
+
+  todosOrdenados.forEach(prod => {
+    const optJ = document.createElement('option');
+    optJ.value = prod.id;
+    optJ.textContent = `${prod.nombre} (Dep: ${prod.stockDeposito} | Caf: ${prod.stockCafeteria})`;
+    selBaja.appendChild(optJ);
   });
 }
 
@@ -1038,7 +1191,176 @@ function renderListaIngreso() {
   if (resCount) resCount.textContent = `${listaIngresoActual.length} tipo(s) | Total: ${totalUnidades}`;
 }
 
-// --- HISTORIAL EN FORMATO TIPO PLANILLA EXCEL ---
+function renderListaBaja() {
+  const lista = document.getElementById('listaBajaActual');
+  const btnConf = document.getElementById('btnGuardarBajas');
+  const resCount = document.getElementById('resumenBajaCount');
+
+  if (!lista) return;
+  lista.innerHTML = '';
+
+  if (listaBajaActual.length === 0) {
+    lista.innerHTML = `<p class="text-xs text-slate-400 italic py-2">Ningún ítem agregado para baja/cortesía.</p>`;
+    if (btnConf) btnConf.disabled = true;
+    if (resCount) resCount.textContent = '0 ítems';
+    return;
+  }
+
+  if (btnConf) btnConf.disabled = false;
+  let totalUnidades = 0;
+
+  listaBajaActual.forEach((item, idx) => {
+    totalUnidades += item.cantidad;
+    const div = document.createElement('div');
+    div.className = 'flex justify-between items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs';
+    div.innerHTML = `
+      <span class="text-slate-800 font-medium">${item.nombre} <span class="text-[10px] bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded border border-rose-200">${item.motivo}</span></span>
+      <div class="flex items-center gap-2">
+        <span class="bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded border border-rose-200">-${item.cantidad} (${item.ubicacion})</span>
+        <button type="button" onclick="quitarDeBaja(${idx})" class="text-slate-400 hover:text-rose-600 font-bold px-1">✕</button>
+      </div>
+    `;
+    lista.appendChild(div);
+  });
+
+  if (resCount) resCount.textContent = `${listaBajaActual.length} tipo(s) | Total: ${totalUnidades}`;
+}
+
+// --- PLANILLA DE CIERRE DE TURNO (PARA WHATSAPP) ---
+function renderCierreTurno() {
+  const container = document.getElementById('tablaCierreTurno');
+  if (!container) return;
+
+  const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
+  container.innerHTML = '';
+
+  productosVisibles.forEach(prod => {
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+    tr.innerHTML = `
+      <td class="py-2.5 px-2 font-medium text-slate-800">${prod.nombre}</td>
+      <td class="py-2.5 px-2 text-center text-sky-700 font-mono font-bold">${prod.stockCafeteria}</td>
+      <td class="py-2.5 px-2 text-center text-slate-600 font-mono">${prod.stockDeposito}</td>
+    `;
+    container.appendChild(tr);
+  });
+}
+
+window.copiarReporteWhatsApp = function() {
+  const selectTurno = document.getElementById('selectTurnoReporte');
+  const turnoNombre = selectTurno ? selectTurno.value : 'Turno General';
+  const fechaHoy = getFechaHoy();
+  const usuario = sessionStorage.getItem('usuarioLogueado') || 'Operador';
+
+  let texto = `📋 *CIERRE DE INVENTARIO - CAFETERÍA* 📋\n`;
+  texto += `📅 Fecha: ${fechaHoy}\n`;
+  texto += `⏰ Turno: ${turnoNombre}\n`;
+  texto += `👤 Responsable: ${usuario}\n`;
+  texto += `----------------------------------------\n`;
+  texto += `*STOCK DEJADO EN VITRINA/CAFETERÍA:*\n`;
+
+  const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
+  productosVisibles.forEach(prod => {
+    texto += `• ${prod.nombre}: *${prod.stockCafeteria} unids*\n`;
+  });
+
+  texto += `----------------------------------------\n`;
+  texto += `_Reporte generado automáticamente desde el Sistema de Depósito_`;
+
+  navigator.clipboard.writeText(texto).then(() => {
+    alert("✅ ¡Reporte copiado al portapapeles!\nYa puedes pegarlo directamente en el chat de WhatsApp.");
+  }).catch(err => {
+    alert("No se pudo copiar automáticamente: " + err);
+  });
+};
+
+// --- REPORTE HISTÓRICO Y EXPORTACIÓN A EXCEL (CSV) ---
+function renderReporteExcel() {
+  const tbody = document.getElementById('tablaReporteExcel');
+  if (!tbody) return;
+
+  const inputDesde = document.getElementById('filtroFechaDesde');
+  const inputHasta = document.getElementById('filtroFechaHasta');
+
+  // Valores por defecto fecha de hoy
+  const hoyIso = new Date().toISOString().split('T')[0];
+  if (inputDesde && !inputDesde.value) inputDesde.value = hoyIso;
+  if (inputHasta && !inputHasta.value) inputHasta.value = hoyIso;
+
+  const desdeVal = inputDesde ? inputDesde.value : hoyIso;
+  const hastaVal = inputHasta ? inputHasta.value : hoyIso;
+
+  // Filtrar movimientos en el rango de fechas
+  const movsFiltrados = historialMovimientos.filter(m => {
+    // Convertir DD/MM/YYYY a YYYY-MM-DD para comparar
+    const partes = (m.fechaCorta || '').split('/');
+    if (partes.length !== 3) return false;
+    const isoFecha = `${partes[2]}-${partes[1]}-${partes[0]}`;
+    return isoFecha >= desdeVal && isoFecha <= hastaVal;
+  });
+
+  tbody.innerHTML = '';
+  if (movsFiltrados.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-slate-400 py-4 text-xs italic">No hay movimientos en este rango de fechas.</td></tr>`;
+    return;
+  }
+
+  movsFiltrados.forEach(reg => {
+    const itemsResumen = reg.items ? reg.items.map(it => `${it.nombre} (${it.cantidad})`).join(', ') : '';
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
+    tr.innerHTML = `
+      <td class="py-2.5 px-3 font-mono text-slate-600">${reg.fechaCorta}</td>
+      <td class="py-2.5 px-3 font-semibold text-slate-800">${reg.tipo}</td>
+      <td class="py-2.5 px-3 text-slate-700">${itemsResumen}</td>
+      <td class="py-2.5 px-3 text-slate-600">${reg.origen || '-'}</td>
+      <td class="py-2.5 px-3 text-slate-500 font-bold">${reg.usuario}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+window.descargarExcelMovimientos = function() {
+  const inputDesde = document.getElementById('filtroFechaDesde');
+  const inputHasta = document.getElementById('filtroFechaHasta');
+  const desdeVal = inputDesde ? inputDesde.value : '';
+  const hastaVal = inputHasta ? inputHasta.value : '';
+
+  const movsFiltrados = historialMovimientos.filter(m => {
+    const partes = (m.fechaCorta || '').split('/');
+    if (partes.length !== 3) return false;
+    const isoFecha = `${partes[2]}-${partes[1]}-${partes[0]}`;
+    return isoFecha >= desdeVal && isoFecha <= hastaVal;
+  });
+
+  if (movsFiltrados.length === 0) {
+    alert("No hay datos para exportar en el rango seleccionado.");
+    return;
+  }
+
+  // Crear contenido CSV compatible con Excel
+  let csvContent = "\uFEFFFecha,Tipo Movimiento,Usuario,Origen,Producto,Cantidad\n";
+
+  movsFiltrados.forEach(reg => {
+    if (reg.items) {
+      reg.items.forEach(it => {
+        const fila = `"${reg.fechaCorta}","${reg.tipo}","${reg.usuario}","${reg.origen || ''}","${it.nombre}",${it.cantidad}\n`;
+        csvContent += fila;
+      });
+    }
+  });
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `Reporte_Inventario_${desdeVal}_al_${hastaVal}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+// --- HISTORIAL AGRUPADO POR DÍA CON ELIMINACIÓN POR ÍTEM ---
 
 function renderHistorial() {
   const contenedor = document.getElementById('contenedorHistorial');
@@ -1053,88 +1375,60 @@ function renderHistorial() {
   }
   empty?.classList.add('hidden');
 
+  const gruposPorDia = {};
+  historialMovimientos.forEach(reg => {
+    const fechaKey = reg.fechaCorta || 'Sin Fecha';
+    if (!gruposPorDia[fechaKey]) gruposPorDia[fechaKey] = [];
+    gruposPorDia[fechaKey].push(reg);
+  });
+
   const usuarioActual = sessionStorage.getItem('usuarioLogueado');
   const esAdmin = usuarioActual === 'Administrador';
 
-  // Contenedor principal con estilo de tabla Excel
-  const wrapper = document.createElement('div');
-  wrapper.className = 'overflow-x-auto bg-white border border-slate-300 rounded-xl shadow-sm text-xs';
+  Object.keys(gruposPorDia).forEach(fechaDia => {
+    const movsDelDia = gruposPorDia[fechaDia];
 
-  const table = document.createElement('table');
-  table.className = 'w-full text-left border-collapse';
+    const diaHeader = document.createElement('div');
+    diaHeader.className = 'sticky top-12 bg-slate-200/90 backdrop-blur px-3 py-1 rounded-lg text-xs font-bold text-slate-700 my-2 flex justify-between items-center border border-slate-300 z-10';
+    diaHeader.innerHTML = `
+      <span>📅 Día: ${fechaDia}</span>
+      <span class="text-[10px] bg-slate-300 px-2 py-0.5 rounded-full text-slate-700 font-semibold">${movsDelDia.length} registro(s)</span>
+    `;
+    contenedor.appendChild(diaHeader);
 
-  // Categorías principales agrupadas tal como en tu Excel
-  const tiposMovimiento = ['VENTA_BARRA', 'TRASPASO', 'INGRESO', 'TRASPASO_INSUMO'];
-  const titulosSeccion = {
-    'VENTA_BARRA': 'VENTAS',
-    'TRASPASO': 'TRASPASO',
-    'INGRESO': 'INGRESO',
-    'TRASPASO_INSUMO': 'TRASPASO INSUMOS'
-  };
+    movsDelDia.forEach(reg => {
+      const card = document.createElement('div');
+      card.className = 'bg-white border border-slate-200 rounded-xl p-3 space-y-2 shadow-sm text-xs';
 
-  let hayRegistrosVisibles = false;
+      const esCreador = reg.usuario === usuarioActual;
+      const puedeModificar = esAdmin || esCreador;
 
-  tiposMovimiento.forEach(tipo => {
-    const movimientosTipo = historialMovimientos.filter(m => m.tipo === tipo);
+      const itemsHTML = reg.items ? reg.items.map(it => `
+        <div class="flex justify-between items-center py-1 border-b border-slate-100 last:border-0">
+          <span>${it.nombre} ${it.hora ? `<span class="text-[10px] text-slate-400">(${it.hora})</span>` : ''}</span>
+          <div class="flex items-center gap-2">
+            <span class="font-bold ${reg.tipo === 'INGRESO' ? 'text-emerald-600' : 'text-sky-600'}">${reg.tipo === 'INGRESO' ? '+' : '-'}${it.cantidad}</span>
+            ${puedeModificar ? `<button onclick="eliminarItemHistorial('${reg._firebaseKey}', ${reg.id}, '${it.nombre}')" title="Borrar solo este ítem" class="text-rose-400 hover:text-rose-600 font-bold px-1 text-[10px]">✕</button>` : ''}
+          </div>
+        </div>
+      `).join('') : '';
 
-    if (movimientosTipo.length > 0) {
-      hayRegistrosVisibles = true;
-
-      // Encabezado de Sección Estilo Excel (Gris oscuro)
-      const trHeader = document.createElement('tr');
-      trHeader.innerHTML = `
-        <td colspan="7" class="bg-slate-700 text-white font-bold px-3 py-2 uppercase tracking-wider text-[11px] border-t border-b border-slate-600">
-          📁 ${titulosSeccion[tipo] || tipo}
-        </td>
+      card.innerHTML = `
+        <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+          <div class="flex items-center gap-1.5">
+            <span class="font-bold px-2 py-0.5 rounded text-[10px] ${reg.tipo === 'INGRESO' ? 'bg-emerald-100 text-emerald-800' : (reg.tipo === 'BAJA_CORTESIA' ? 'bg-rose-100 text-rose-800' : 'bg-sky-100 text-sky-800')}">
+              ${reg.tipo}
+            </span>
+            <span class="font-bold text-slate-700">👤 ${reg.usuario}</span>
+          </div>
+          ${puedeModificar ? `<button onclick="eliminarRegistroHistorial('${reg._firebaseKey}', ${reg.id})" class="text-rose-500 hover:text-rose-700 font-semibold text-[11px]">🗑️ Anular Ticket</button>` : `<span class="text-[10px] text-slate-400 italic">Solo lectura</span>`}
+        </div>
+        <div class="space-y-0.5 bg-slate-50 p-2 rounded-lg">${itemsHTML}</div>
+        <div class="text-[10px] text-slate-400 text-right font-mono">${reg.fecha} (${reg.origen || 'General'})</div>
       `;
-      table.appendChild(trHeader);
-
-      // Fila de Columnas de la Tabla
-      const trCols = document.createElement('tr');
-      trCols.className = 'bg-slate-100 text-slate-700 font-bold border-b border-slate-300 text-[11px]';
-      trCols.innerHTML = `
-        <th class="py-2 px-3 border-r border-slate-300">Fecha</th>
-        <th class="py-2 px-3 border-r border-slate-300">Tipo Movimiento</th>
-        <th class="py-2 px-3 border-r border-slate-300">Usuario</th>
-        <th class="py-2 px-3 border-r border-slate-300">Origen</th>
-        <th class="py-2 px-3 border-r border-slate-300">Producto</th>
-        <th class="py-2 px-3 border-r border-slate-300 text-center">Cantidad</th>
-        <th class="py-2 px-3 text-center">Acción</th>
-      `;
-      table.appendChild(trCols);
-
-      movimientosTipo.forEach(reg => {
-        const esCreador = reg.usuario === usuarioActual;
-        const puedeBorrar = esAdmin || esCreador;
-
-        if (reg.items && Array.isArray(reg.items)) {
-          reg.items.forEach(item => {
-            const trItem = document.createElement('tr');
-            trItem.className = 'hover:bg-slate-50 border-b border-slate-200 transition';
-            trItem.innerHTML = `
-              <td class="py-2 px-3 border-r border-slate-200 text-slate-600">${reg.fechaCorta || '-'}</td>
-              <td class="py-2 px-3 border-r border-slate-200 font-semibold text-slate-700">${reg.tipo}</td>
-              <td class="py-2 px-3 border-r border-slate-200 text-slate-600">${reg.usuario}</td>
-              <td class="py-2 px-3 border-r border-slate-200 text-slate-600">${reg.origen || 'General'}</td>
-              <td class="py-2 px-3 border-r border-slate-200 text-slate-900 font-medium">${item.nombre} ${item.hora ? `<span class="text-[10px] text-slate-400 font-normal">(${item.hora})</span>` : ''}</td>
-              <td class="py-2 px-3 border-r border-slate-200 text-center font-bold ${reg.tipo === 'INGRESO' ? 'text-emerald-600' : 'text-indigo-600'}">${reg.tipo === 'INGRESO' ? '+' : ''}${item.cantidad}</td>
-              <td class="py-2 px-3 text-center">
-                ${puedeBorrar ? `<button onclick="eliminarRegistroHistorial('${reg._firebaseKey}', ${reg.id})" class="text-rose-600 hover:text-rose-800 font-semibold text-[10px] bg-rose-50 px-2 py-0.5 rounded border border-rose-200">Anular</button>` : `<span class="text-[10px] text-slate-400 italic">-</span>`}
-              </td>
-            `;
-            table.appendChild(trItem);
-          });
-        }
-      });
-    }
+      contenedor.appendChild(card);
+    });
   });
-
-  wrapper.appendChild(table);
-  contenedor.appendChild(wrapper);
-
-  if (!hayRegistrosVisibles) {
-    empty?.classList.remove('hidden');
-  }
 }
 
 // Inicialización de la aplicación y manejo de pestañas
@@ -1152,7 +1446,10 @@ function iniciarApp() {
     'tab-ingreso': 'Ingreso de Mercadería',
     'tab-nuevo_prod': 'Nuevo Producto (Admin)',
     'tab-historial': 'Historial de Movimientos',
-    'tab-insumos': 'Insumos y Depósito'
+    'tab-insumos': 'Insumos y Depósito',
+    'tab-bajas': 'Bajas y Cortesías',
+    'tab-cierre': 'Cierre de Turno',
+    'tab-reportes': 'Reportes y Excel'
   };
 
   radioTabs.forEach(radio => {
@@ -1173,6 +1470,12 @@ function iniciarApp() {
   document.getElementById('btnConfirmarBarra')?.addEventListener('click', confirmarConsumoBarra);
   document.getElementById('btnAgregarAIngreso')?.addEventListener('click', agregarAIngreso);
   document.getElementById('btnGuardarIngreso')?.addEventListener('click', confirmarIngresoStockMultiple);
+  document.getElementById('btnAgregarABaja')?.addEventListener('click', agregarABaja);
+  document.getElementById('btnGuardarBajas')?.addEventListener('click', confirmarBajasMultiple);
+  document.getElementById('btnCopiarWhatsApp')?.addEventListener('click', copiarReporteWhatsApp);
+  document.getElementById('btnDescargarExcel')?.addEventListener('click', descargarExcelMovimientos);
+  document.getElementById('filtroFechaDesde')?.addEventListener('change', renderReporteExcel);
+  document.getElementById('filtroFechaHasta')?.addEventListener('change', renderReporteExcel);
 }
 
 // Ejecutar al cargar la página
