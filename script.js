@@ -660,7 +660,61 @@ window.pasarInsumo = function(idInsumo) {
   alert(`✅ Se pasaron ${cantidad} de "${prod.nombre}". Quedan ${prod.stockDeposito} en depósito.`);
 };
 
-// --- ANULACIÓN ---
+// --- ANULACIÓN (REGISTRO COMPLETO O ÍTEM INDIVIDUAL) ---
+window.eliminarItemHistorial = function(key, idRegistro, indexItem) {
+  const reg = historialMovimientos.find(m => m.id === idRegistro || m._firebaseKey === key);
+  if (!reg || !reg.items || !reg.items[indexItem]) return;
+
+  const usuarioActual = sessionStorage.getItem('usuarioLogueado');
+  const esAdmin = usuarioActual === 'Administrador';
+  const esCreador = reg.usuario === usuarioActual;
+
+  if (!esAdmin && !esCreador) {
+    alert("⛔ No tienes permisos para anular este ítem porque el registro pertenece a otro usuario.");
+    return;
+  }
+
+  const item = reg.items[indexItem];
+
+  if (!confirm(`⚠️ ¿Anular el ítem "${item.nombre} (${item.cantidad})" de este registro?\nEl stock afectado se devolverá automáticamente.`)) return;
+
+  // Revertir el stock de este ítem específico
+  const prod = inventario.find(p => p.nombre === item.nombre);
+  if (prod) {
+    const tipoUpper = (reg.tipo || '').toUpperCase();
+    if (tipoUpper.includes('VENTA')) {
+      prod.stockCafeteria += item.cantidad;
+    } else if (tipoUpper === 'TRASPASO') {
+      prod.stockDeposito += item.cantidad;
+      prod.stockCafeteria = Math.max(0, prod.stockCafeteria - item.cantidad);
+    } else if (tipoUpper === 'TRASPASO_INSUMO') {
+      prod.stockDeposito += item.cantidad;
+    } else if (tipoUpper === 'INGRESO') {
+      if (reg.origen && reg.origen.includes('Cafetería')) {
+        prod.stockCafeteria = Math.max(0, prod.stockCafeteria - item.cantidad);
+      } else {
+        prod.stockDeposito = Math.max(0, prod.stockDeposito - item.cantidad);
+      }
+    }
+  }
+
+  // Actualizar inventario en Firebase
+  set(inventoryRef, inventario);
+
+  // Quitar el ítem de la lista
+  reg.items.splice(indexItem, 1);
+
+  // Si ya no quedan ítems, eliminar el registro completo, de lo contrario actualizar
+  if (reg.items.length === 0) {
+    remove(ref(db, `historial/${key || reg._firebaseKey}`));
+  } else {
+    const { _firebaseKey, ...cleanReg } = reg;
+    set(ref(db, `historial/${key || reg._firebaseKey}`), cleanReg);
+  }
+
+  alert("✅ Ítem anulado y stock reajustado correctamente.");
+};
+
 window.eliminarRegistroHistorial = function(key, idRegistro) {
   const reg = historialMovimientos.find(m => m.id === idRegistro || m._firebaseKey === key);
   if (!reg) return;
