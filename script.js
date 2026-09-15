@@ -1289,81 +1289,107 @@ function renderHistorial() {
   const usuarioActual = sessionStorage.getItem('usuarioLogueado');
   const esAdmin = usuarioActual === 'Administrador';
 
-  const wrapper = document.createElement('div');
-  wrapper.className = 'overflow-x-auto bg-white border border-slate-300 rounded-xl shadow-sm text-xs';
-
-  const table = document.createElement('table');
-  table.className = 'w-full text-left border-collapse';
-
-  const tiposMovimiento = ['VENTA_BARRA', 'TRASPASO', 'INGRESO', 'TRASPASO_INSUMO'];
-  const titulosSeccion = {
-    'VENTA_BARRA': 'VENTAS',
-    'TRASPASO': 'TRASPASO',
-    'INGRESO': 'INGRESO',
-    'TRASPASO_INSUMO': 'TRASPASO INSUMOS'
-  };
-
-  let hayRegistrosVisibles = false;
-
-  tiposMovimiento.forEach(tipo => {
-    const movimientosTipo = historialMovimientos.filter(m => m.tipo === tipo);
-
-    if (movimientosTipo.length > 0) {
-      hayRegistrosVisibles = true;
-
-      const trHeader = document.createElement('tr');
-      trHeader.innerHTML = `
-        <td colspan="7" class="bg-slate-700 text-white font-bold px-3 py-2 uppercase tracking-wider text-[11px] border-t border-b border-slate-600">
-          📁 ${titulosSeccion[tipo] || tipo}
-        </td>
-      `;
-      table.appendChild(trHeader);
-
-      const trCols = document.createElement('tr');
-      trCols.className = 'bg-slate-100 text-slate-700 font-bold border-b border-slate-300 text-[11px]';
-      trCols.innerHTML = `
-        <th class="py-2 px-3 border-r border-slate-300">Fecha</th>
-        <th class="py-2 px-3 border-r border-slate-300">Tipo Movimiento</th>
-        <th class="py-2 px-3 border-r border-slate-300">Usuario</th>
-        <th class="py-2 px-3 border-r border-slate-300">Origen</th>
-        <th class="py-2 px-3 border-r border-slate-300">Producto</th>
-        <th class="py-2 px-3 border-r border-slate-300 text-center">Cantidad</th>
-        <th class="py-2 px-3 text-center">Acción</th>
-      `;
-      table.appendChild(trCols);
-
-      movimientosTipo.forEach(reg => {
-        const esCreador = reg.usuario === usuarioActual;
-        const puedeBorrar = esAdmin || esCreador;
-
-        if (reg.items && Array.isArray(reg.items)) {
-          reg.items.forEach(item => {
-            const trItem = document.createElement('tr');
-            trItem.className = 'hover:bg-slate-50 border-b border-slate-200 transition';
-            trItem.innerHTML = `
-              <td class="py-2 px-3 border-r border-slate-200 text-slate-600">${reg.fechaCorta || '-'}</td>
-              <td class="py-2 px-3 border-r border-slate-200 font-semibold text-slate-700">${reg.tipo}</td>
-              <td class="py-2 px-3 border-r border-slate-200 text-slate-600">${reg.usuario}</td>
-              <td class="py-2 px-3 border-r border-slate-200 text-slate-600">${reg.origen || 'General'}</td>
-              <td class="py-2 px-3 border-r border-slate-200 text-slate-900 font-medium">${item.nombre} ${item.hora ? `<span class="text-[10px] text-slate-400 font-normal">(${item.hora})</span>` : ''}</td>
-              <td class="py-2 px-3 border-r border-slate-200 text-center font-bold ${reg.tipo === 'INGRESO' ? 'text-emerald-600' : 'text-indigo-600'}">${reg.tipo === 'INGRESO' ? '+' : ''}${item.cantidad}</td>
-              <td class="py-2 px-3 text-center">
-                ${puedeBorrar ? `<button onclick="eliminarRegistroHistorial('${reg._firebaseKey}', ${reg.id})" class="text-rose-600 hover:text-rose-800 font-semibold text-[10px] bg-rose-50 px-2 py-0.5 rounded border border-rose-200">Anular</button>` : `<span class="text-[10px] text-slate-400 italic">-</span>`}
-              </td>
-            `;
-            table.appendChild(trItem);
-          });
-        }
-      });
+  // Agrupar movimientos por fechaCorta para mantener la estructura visual limpia por día
+  const agrupadosPorFecha = {};
+  historialMovimientos.forEach(reg => {
+    const fechaKey = reg.fechaCorta || 'Sin Fecha';
+    if (!agrupadosPorFecha[fechaKey]) {
+      agrupadosPorFecha[fechaKey] = [];
     }
+    agrupadosPorFecha[fechaKey].push(reg);
   });
 
-  wrapper.appendChild(table);
-  contenedor.appendChild(wrapper);
+  const wrapper = document.createElement('div');
+  wrapper.className = 'space-y-4 text-xs';
 
-  if (!hayRegistrosVisibles) {
-    empty?.classList.remove('hidden');
-  }
+  // Recorrer cada fecha ordenada de la más reciente a la más antigua
+  Object.keys(agrupadosPorFecha).sort().reverse().forEach(fechaKey => {
+    const movimientosDia = agrupadosPorFecha[fechaKey];
+
+    // Contenedor del día
+    const seccionDia = document.createElement('div');
+    seccionDia.className = 'space-y-3';
+
+    // Cabecera del Día (ej: 📅 Día: 14/09/2026)
+    const headerDia = document.createElement('div');
+    headerDia.className = 'bg-slate-100 border border-slate-300 rounded-xl px-4 py-2.5 flex justify-between items-center shadow-sm';
+    headerDia.innerHTML = `
+      <span class="font-bold text-slate-800 text-sm flex items-center gap-2">
+        📅 Día: ${fechaKey}
+      </span>
+      <span class="bg-slate-200 text-slate-700 font-semibold px-2.5 py-0.5 rounded-full text-xs">
+        ${movimientosDia.length} registro(s)
+      </span>
+    `;
+    seccionDia.appendChild(headerDia);
+
+    // Tarjetas individuales de movimientos para ese día
+    movimientosDia.forEach(reg => {
+      const esCreador = reg.usuario === usuarioActual;
+      const puedeBorrar = esAdmin || esCreador;
+
+      let colorBadge = 'bg-slate-800 text-slate-200 border-slate-700';
+      let iconoTipo = '📄';
+      if (reg.tipo === 'VENTA_BARRA' || reg.tipo.includes('VENTA')) {
+        colorBadge = 'bg-sky-100 text-sky-800 border-sky-300';
+        iconoTipo = '☕';
+      } else if (reg.tipo === 'TRASPASO' || reg.tipo === 'TRASPASO_INSUMO') {
+        colorBadge = 'bg-indigo-100 text-indigo-800 border-indigo-300';
+        iconoTipo = '🔄';
+      } else if (reg.tipo === 'INGRESO') {
+        colorBadge = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+        iconoTipo = '📦';
+      }
+
+      const card = document.createElement('div');
+      card.className = 'bg-white border border-slate-300 rounded-2xl p-4 space-y-3 shadow-sm ml-2';
+
+      let itemsHtml = '';
+      if (reg.items && Array.isArray(reg.items)) {
+        reg.items.forEach(item => {
+          itemsHtml += `
+            <div class="flex justify-between items-center border-b border-slate-100 py-1.5 last:border-b-0">
+              <span class="text-slate-800 font-medium">
+                ${item.nombre} ${item.hora ? `<span class="text-slate-400 font-normal text-[11px]">(${item.hora})</span>` : ''}
+              </span>
+              <span class="font-mono font-bold ${reg.tipo === 'INGREsO' ? 'text-emerald-600' : 'text-sky-700'}">
+                ${reg.tipo === 'INGRESO' ? '+' : '-'}${item.cantidad}
+              </span>
+            </div>
+          `;
+        });
+      }
+
+      card.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded-lg border font-bold text-xs ${colorBadge}">
+              ${iconoTipo} ${reg.tipo}
+            </span>
+            <span class="text-slate-700 font-semibold text-xs">👤 ${reg.usuario}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            ${puedeBorrar ? `<button onclick="eliminarRegistroHistorial('${reg._firebaseKey}', ${reg.id})" class="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg border border-rose-200 font-bold transition text-xs flex items-center gap-1">🗑️ Anular</button>` : ''}
+          </div>
+        </div>
+
+        <div class="space-y-0.5 pt-1">
+          ${itemsHtml}
+        </div>
+
+        <div class="border-t border-slate-100 pt-2 flex justify-between items-center text-[11px] text-slate-400">
+          <span>${reg.fecha || reg.fechaCorta}</span>
+          <span>(${reg.origen || 'General'})</span>
+        </div>
+      `;
+
+      seccionDia.appendChild(card);
+    });
+
+    wrapper.appendChild(seccionDia);
+  });
+
+  contenedor.appendChild(wrapper);
 }
 
 // Inicialización de la aplicación y manejo de pestañas
