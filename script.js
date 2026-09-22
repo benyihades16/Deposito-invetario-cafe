@@ -97,7 +97,7 @@ onValue(cafeGranoRef, (snapshot) => {
   renderControlCafe();
 });
 
-// --- GESTIÓN DE PERFILES Y SESIÓN (CORREGIDA Y ROBUSTA) ---
+// --- GESTIÓN DE PERFILES Y SESIÓN ---
 
 function verificarSesion() {
   const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
@@ -120,7 +120,6 @@ function configurarModalLogin() {
 
   if (!selectUsuario || !btnIngresar) return;
 
-  // Estado inicial según selección por defecto
   const esAdminInicial = selectUsuario.value.trim().toLowerCase() === 'administrador';
   if (esAdminInicial) {
     divPin?.classList.remove('hidden');
@@ -214,7 +213,7 @@ window.cerrarSesion = function() {
     listaBajaActual = [];
     listaTicketBarraActual = [];
     verificarSesion();
-    window.location.reload(); // Recarga limpia para reiniciar estados del modal
+    window.location.reload();
   }
 };
 
@@ -251,6 +250,19 @@ window.agregarCafeGranoAdmin = function() {
 };
 
 // --- GESTIÓN DE PRODUCTOS ---
+function configurarSelectorTipoProducto() {
+  const tipoInput = document.getElementById('prodTipo');
+  if (tipoInput) {
+    // Asegurar opción 'cafe'
+    if (!tipoInput.querySelector('option[value="cafe"]')) {
+      const opt = document.createElement('option');
+      opt.value = 'cafe';
+      opt.textContent = 'Café (Preparación de Barra)';
+      tipoInput.appendChild(opt);
+    }
+  }
+}
+
 function guardarProductoNuevo() {
   if (sessionStorage.getItem('usuarioLogueado')?.toLowerCase() !== 'administrador') return;
 
@@ -275,8 +287,8 @@ function guardarProductoNuevo() {
     id: Date.now(),
     nombre: nombre,
     tipo: tipo, 
-    stockDeposito: stockDep,
-    stockCafeteria: (tipo === 'insumo' || tipo === 'cafe') ? 0 : stockCaf,
+    stockDeposito: tipo === 'cafe' ? 0 : stockDep,
+    stockCafeteria: tipo === 'cafe' ? 0 : stockCaf,
     precio: 0,
     gramosPorTaza: gramosPorTaza
   };
@@ -380,7 +392,7 @@ function confirmarTraspasoMultiple() {
   });
 
   set(inventoryRef, inventario);
-  registrarMovimientoEnTurno('TRASPASO', listaTraspasoActual, 'Depósito ➔ Cafetería');
+  registrarMovimientoEnTurno('TRASPASO', [...listaTraspasoActual], 'Depósito ➔ Cafetería');
 
   listaTraspasoActual = [];
   alert(`✅ Traspaso registrado correctamente.`);
@@ -410,6 +422,7 @@ function renderBotonesBarra() {
   }
 
   grid.innerHTML = '';
+  // Mostramos productos y cafés en barra (excluimos solo insumos)
   let productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
 
   if (filtroBusquedaBarra) {
@@ -428,7 +441,7 @@ function renderBotonesBarra() {
     btn.className = 'bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded-xl text-left flex flex-col justify-between transition active:scale-95 shadow';
     
     let infoStockHtml = esCafe 
-      ? `<span class="text-[10px] text-amber-400 font-semibold">⚡ Stock Ilimitado</span>` 
+      ? `<span class="text-[10px] text-amber-400 font-semibold">⚡ Café (${prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF}g)</span>` 
       : `<span class="text-[10px] text-sky-400">Stock: ${prod.stockCafeteria}</span>`;
 
     btn.innerHTML = `
@@ -540,7 +553,7 @@ function emitirTicketVenta() {
   }
 
   set(inventoryRef, inventario);
-  registrarMovimientoEnTurno('VENTA_BARRA', listaTicketBarraActual, gramosConsumidosTotal > 0 ? `Ventas Barra (-${gramosConsumidosTotal}g Café)` : 'Ventas Barra');
+  registrarMovimientoEnTurno('VENTA_BARRA', [...listaTicketBarraActual], gramosConsumidosTotal > 0 ? `Ventas Barra (-${gramosConsumidosTotal}g Café)` : 'Ventas Barra');
 
   listaTicketBarraActual = [];
   renderTicketActualBarra();
@@ -628,9 +641,9 @@ function confirmarIngresoStockMultiple() {
 
   listaIngresoActual.forEach(item => {
     const prod = inventario.find(p => p.id === item.id);
-    if (prod) {
+    if (prod && prod.tipo !== 'cafe') {
       if (item.destino === 'deposito') prod.stockDeposito += item.cantidad;
-      else if (prod.tipo !== 'cafe') prod.stockCafeteria += item.cantidad;
+      else prod.stockCafeteria += item.cantidad;
     }
   });
 
@@ -643,7 +656,7 @@ function confirmarIngresoStockMultiple() {
   });
 
   Object.keys(grupos).forEach(origen => {
-    registrarMovimientoEnTurno('INGRESO', grupos[origen], origen);
+    registrarMovimientoEnTurno('INGRESO', [...grupos[origen]], origen);
   });
 
   listaIngresoActual = [];
@@ -721,7 +734,7 @@ function confirmarBajasMultiple() {
   });
 
   Object.keys(grupos).forEach(origen => {
-    registrarMovimientoEnTurno('BAJA_CORTESIA', grupos[origen], origen);
+    registrarMovimientoEnTurno('BAJA_CORTESIA', [...grupos[origen]], origen);
   });
 
   listaBajaActual = [];
@@ -804,7 +817,7 @@ window.ejecutarBorradoHistorial = function() {
 
 window.reiniciarStockTodo = function() {
   if (confirm("⚠️ ¿Poner en 0 el stock de Depósito y Cafetería para todos los ítems?")) {
-    inventario.forEach(p => { p.stockDeposito = 0; p.stockCafeteria = 0; });
+    inventario.forEach(p => { if (p.tipo !== 'cafe') { p.stockDeposito = 0; p.stockCafeteria = 0; } });
     set(inventoryRef, inventario).then(() => {
       renderTodo();
       alert("✅ Stock reiniciado a 0.");
@@ -829,7 +842,8 @@ function renderTodo() {
 }
 
 function renderInventario() {
-  const productosVisibles = inventario.filter(p => p.tipo !== 'insumo');
+  // Excluimos 'cafe' de las tablas de inventario físico (depósito y vitrina)
+  const productosVisibles = inventario.filter(p => p.tipo !== 'insumo' && p.tipo !== 'cafe');
   const ordenados = ordenarInventario(productosVisibles);
   const esAdmin = sessionStorage.getItem('usuarioLogueado')?.trim().toLowerCase() === 'administrador';
 
@@ -854,8 +868,8 @@ function renderInventario() {
         }
       });
 
-      const stockActual = prod.tipo === 'cafe' ? 'Ilimitado' : prod.stockCafeteria;
-      const stockAnterior = prod.tipo === 'cafe' ? '-' : Math.max(0, prod.stockCafeteria - entradasHoy + ventasHoy);
+      const stockActual = prod.stockCafeteria;
+      const stockAnterior = Math.max(0, prod.stockCafeteria - entradasHoy + ventasHoy);
 
       const tr = document.createElement('tr');
       tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
@@ -872,7 +886,8 @@ function renderInventario() {
   const tbodyDep = document.getElementById('tablaDeposito');
   if (tbodyDep) {
     tbodyDep.innerHTML = '';
-    ordenarInventario(inventario).forEach(prod => {
+    const depositoItems = inventario.filter(p => p.tipo !== 'cafe');
+    ordenarInventario(depositoItems).forEach(prod => {
       const tr = document.createElement('tr');
       tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
       tr.innerHTML = `
@@ -887,14 +902,15 @@ function renderInventario() {
   const tbodyTot = document.getElementById('tablaTotal');
   if (tbodyTot) {
     tbodyTot.innerHTML = '';
-    ordenarInventario(inventario).forEach(prod => {
-      const total = prod.tipo === 'cafe' ? 'Ilimitado' : (prod.stockDeposito + prod.stockCafeteria);
+    const totalItems = inventario.filter(p => p.tipo !== 'cafe');
+    ordenarInventario(totalItems).forEach(prod => {
+      const total = prod.stockDeposito + prod.stockCafeteria;
       const tr = document.createElement('tr');
       tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
       tr.innerHTML = `
         <td class="py-3 px-3 font-semibold text-slate-800">${prod.nombre}</td>
         <td class="py-3 px-3 text-center text-slate-500 font-mono">${prod.stockDeposito}</td>
-        <td class="py-3 px-3 text-center text-sky-600 font-mono">${prod.tipo === 'cafe' ? 'Ilimitado' : prod.stockCafeteria}</td>
+        <td class="py-3 px-3 text-center text-sky-600 font-mono">${prod.stockCafeteria}</td>
         <td class="py-3 px-3 text-right font-extrabold text-slate-900 font-mono">${total}</td>
       `;
       tbodyTot.appendChild(tr);
@@ -902,7 +918,7 @@ function renderInventario() {
   }
 
   const elTotalProd = document.getElementById('statTotalProductos');
-  if (elTotalProd) elTotalProd.textContent = inventario.length;
+  if (elTotalProd) elTotalProd.textContent = inventario.filter(p => p.tipo !== 'cafe').length;
 
   const elTotalPases = document.getElementById('statTotalPases');
   if (elTotalPases) {
@@ -950,13 +966,13 @@ function renderSelectores() {
   selIngreso.innerHTML = '';
   selBaja.innerHTML = '';
 
-  const todosOrdenados = ordenarInventario(inventario);
+  const todosOrdenados = ordenarInventario(inventario.filter(p => p.tipo !== 'cafe'));
 
   todosOrdenados.forEach(prod => {
     const optT = document.createElement('option');
     optT.value = prod.id;
     optT.textContent = `${prod.nombre} (Depósito: ${prod.stockDeposito})`;
-    if (prod.stockDeposito <= 0 || prod.tipo === 'cafe') optT.disabled = true;
+    if (prod.stockDeposito <= 0) optT.disabled = true;
     selTraspaso.appendChild(optT);
   });
 
@@ -970,7 +986,7 @@ function renderSelectores() {
   todosOrdenados.forEach(prod => {
     const optJ = document.createElement('option');
     optJ.value = prod.id;
-    optJ.textContent = `${prod.nombre} (Dep: ${prod.stockDeposito} | Caf: ${prod.tipo === 'cafe' ? 'Ilimitado' : prod.stockCafeteria})`;
+    optJ.textContent = `${prod.nombre} (Dep: ${prod.stockDeposito} | Caf: ${prod.stockCafeteria})`;
     selBaja.appendChild(optJ);
   });
 }
@@ -1084,7 +1100,7 @@ function renderCierreTurno() {
   const container = document.getElementById('tablaCierreTurno');
   if (!container) return;
 
-  const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
+  const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo' && p.tipo !== 'cafe'));
   container.innerHTML = '';
 
   productosVisibles.forEach(prod => {
@@ -1092,7 +1108,7 @@ function renderCierreTurno() {
     tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
     tr.innerHTML = `
       <td class="py-2.5 px-3 font-medium text-slate-800">${prod.nombre}</td>
-      <td class="py-2.5 px-3 text-center text-sky-700 font-mono font-bold">${prod.tipo === 'cafe' ? 'Ilimitado' : prod.stockCafeteria}</td>
+      <td class="py-2.5 px-3 text-center text-sky-700 font-mono font-bold">${prod.stockCafeteria}</td>
       <td class="py-2.5 px-3 text-center text-slate-600 font-mono">${prod.stockDeposito}</td>
     `;
     container.appendChild(tr);
@@ -1112,9 +1128,9 @@ window.copiarReporteWhatsApp = function() {
   texto += `----------------------------------------\n`;
   texto += `*STOCK EN VITRINA/CAFETERÍA:*\n`;
 
-  const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
+  const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo' && p.tipo !== 'cafe'));
   productosVisibles.forEach(prod => {
-    texto += `• ${prod.nombre}: *${prod.tipo === 'cafe' ? 'Ilimitado' : prod.stockCafeteria + ' unids'}*\n`;
+    texto += `• ${prod.nombre}: *${prod.stockCafeteria} unids*\n`;
   });
 
   navigator.clipboard.writeText(texto).then(() => {
@@ -1237,6 +1253,7 @@ function renderHistorial() {
 
 function iniciarApp() {
   configurarModalLogin();
+  configurarSelectorTipoProducto();
   verificarSesion();
 
   const radioTabs = document.querySelectorAll('input[name="seccion"]');
