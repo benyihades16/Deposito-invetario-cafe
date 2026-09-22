@@ -18,6 +18,7 @@
 #tab-total:checked ~ main #sec-total { display: block; }
 #tab-transferencia:checked ~ main #sec-transferencia { display: block; }
 #tab-barra:checked ~ main #sec-barra { display: block; }
+#tab-tickets:checked ~ main #sec-tickets { display: block; }
 #tab-ingreso:checked ~ main #sec-ingreso { display: block; }
 #tab-insumos:checked ~ main #sec-insumos { display: block; }
 #tab-bajas:checked ~ main #sec-bajas { display: block; }
@@ -29,12 +30,41 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen pb-12">
 
+<!-- MODAL DE INICIO DE SESIÓN (3 USUARIOS) -->
+<div id="loginModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4">
+        <div class="text-center">
+            <span class="text-3xl">☕</span>
+            <h2 class="text-lg font-bold text-slate-900 mt-2">Control de Depósito y Cafetería</h2>
+            <p class="text-xs text-slate-500">Seleccione su usuario para ingresar</p>
+        </div>
+        <div class="space-y-3">
+            <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">Usuario</label>
+                <select id="loginUsuario" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
+                    <option value="Administrador">Administrador</option>
+                    <option value="Usuario 1">Usuario 1</option>
+                    <option value="Usuario 2">Usuario 2</option>
+                </select>
+            </div>
+            <div id="divPinAdmin" class="space-y-1">
+                <label class="block text-xs font-medium text-slate-700 mb-1">PIN de Administrador</label>
+                <input type="password" id="loginPin" placeholder="Ingrese PIN (1234)" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
+            </div>
+            <button type="button" id="btnIngresarApp" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5 rounded-lg transition text-sm shadow active:scale-95">
+                Ingresar al Sistema
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- CONTROLES NATIVOS DE NAVEGACIÓN -->
 <input type="checkbox" id="menu-toggle" class="control-hidden">
 <input type="radio" name="seccion" id="tab-stock" class="control-hidden" checked>
 <input type="radio" name="seccion" id="tab-total" class="control-hidden">
 <input type="radio" name="seccion" id="tab-transferencia" class="control-hidden">
 <input type="radio" name="seccion" id="tab-barra" class="control-hidden">
+<input type="radio" name="seccion" id="tab-tickets" class="control-hidden">
 <input type="radio" name="seccion" id="tab-ingreso" class="control-hidden">
 <input type="radio" name="seccion" id="tab-insumos" class="control-hidden">
 <input type="radio" name="seccion" id="tab-bajas" class="control-hidden">
@@ -68,7 +98,10 @@
 <span>🔄</span> Traspaso a Cafetería
 </label>
 <label for="tab-barra" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
-<span>☕</span> Ventas & Barra (Café & Más)
+<span>☕</span> Ventas de Barra
+</label>
+<label for="tab-tickets" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
+<span>🧾</span> Recibos / Tickets
 </label>
 <label for="tab-ingreso" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
 <span>📥</span> Ingreso de Mercadería
@@ -95,7 +128,7 @@
 </div>
 
 <div class="border-t border-slate-800 pt-3 text-xs text-slate-500 text-center">
-Control de Depósito v7.5
+Control de Depósito v7.6
 </div>
 </aside>
 
@@ -116,7 +149,7 @@ Control de Depósito v7.5
 </div>
 
 <!-- BADGE USUARIO Y BOTÓN DE CERRAR SESIÓN -->
-<div id="usuarioHeaderBadge"></div>
+<div id="usuarioHeaderBadge" class="flex items-center gap-2"></div>
 </div>
 </header>
 
@@ -125,6 +158,32 @@ Control de Depósito v7.5
 
 <!-- 1. SECCIÓN: STOCK ACTUAL -->
 <section id="sec-stock" class="seccion-vista space-y-5">
+<!-- CONTADOR DE CAFÉ EN TIEMPO REAL (Independiente de Depósito y Vitrina) -->
+<div class="bg-gradient-to-r from-amber-900 to-amber-950 text-white p-4 rounded-xl shadow-md border border-amber-800 space-y-3">
+<div class="flex justify-between items-center">
+<h3 class="font-bold text-sm flex items-center gap-2 text-amber-200">
+<span>☕</span> Control de Café en Grano (Pesaje Exacto)
+</h3>
+</div>
+<div class="grid grid-cols-2 gap-3 text-center">
+<div class="bg-black/30 p-3 rounded-lg border border-amber-700/50">
+<p class="text-xs text-amber-300 font-medium">Monto Inicial</p>
+<p id="cafeMontoInicial" class="text-lg font-black text-white mt-0.5">0.00 g</p>
+</div>
+<div class="bg-black/30 p-3 rounded-lg border border-emerald-700/50">
+<p class="text-xs text-emerald-300 font-medium">Restante en Tiempo Real</p>
+<p id="cafeRestanteReal" class="text-lg font-black text-emerald-400 mt-0.5">0.00 g</p>
+</div>
+</div>
+<!-- Panel exclusivo para Administrador para agregar café -->
+<div id="panelAdminAgregarCafe" class="pt-2 border-t border-amber-800/80 hidden flex gap-2">
+<input type="number" id="inputAdminCafeGramos" placeholder="Gramos a agregar" class="w-full px-3 py-1.5 bg-black/40 border border-amber-700 rounded-lg text-xs text-white placeholder-amber-400/50 focus:outline-none">
+<button type="button" id="btnAdminGuardarCafe" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-4 py-1.5 rounded-lg transition shrink-0 active:scale-95">
+➕ Agregar Café
+</button>
+</div>
+</div>
+
 <div class="grid grid-cols-2 gap-3">
 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
 <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Ítems Únicos</p>
@@ -244,52 +303,61 @@ Control de Depósito v7.5
 </div>
 </section>
 
-<!-- 4. SECCIÓN: VENTAS & BARRA -->
+<!-- 4. SECCIÓN: VENTAS DE BARRA (BOTONES Y TICKETS INDIVIDUALES) -->
 <section id="sec-barra" class="seccion-vista">
 <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-lg border border-slate-800 space-y-4">
-<div class="border-b border-slate-800 pb-3">
+<div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+<div>
 <h2 class="text-base font-bold text-sky-400 flex items-center gap-2">
-<span>☕</span> Registrar Consumo / Ventas en Barra
+<span>☕</span> Ventas de Barra & Botones de Consumo
 </h2>
-<p class="text-xs text-slate-400 mt-0.5">Descuenta bebidas y calcula automáticamente el café en gramos consumido</p>
+<p class="text-xs text-slate-400 mt-0.5">Presiona los botones para aumentar o reducir cantidades</p>
+</div>
+<div id="badgeUsuarioBarra" class="text-xs bg-slate-800 px-3 py-1 rounded-full text-sky-300 font-medium"></div>
 </div>
 
-<div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
-<div class="sm:col-span-6">
-<label class="block text-xs font-medium text-slate-300 mb-1">Bebida o Producto</label>
-<select id="selectProductoBarra" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none"></select>
-</div>
-<div class="sm:col-span-3">
-<label class="block text-xs font-medium text-slate-300 mb-1">Cantidad</label>
-<input type="number" id="cantBarra" min="1" value="1" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none">
-</div>
-<div class="sm:col-span-3 flex items-end">
-<button type="button" id="btnAgregarABarra" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-medium py-2 rounded-lg transition text-sm flex items-center justify-center gap-1 active:scale-95">
-➕ Agregar
-</button>
-</div>
+<!-- GESTOR DE BOTONES DE PRODUCTOS DE BARRA -->
+<div id="gridBotonesBarra" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+<!-- Generado dinámicamente -->
 </div>
 
-<div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
-<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Multi-lista de Consumo:</p>
-<div id="listaBarraActual" class="space-y-2 max-h-48 overflow-y-auto"></div>
-
-<!-- Indicador de café descontado en tiempo real -->
-<div id="infoCafeDescontado" class="mt-3 bg-amber-950/40 border border-amber-800/60 p-2.5 rounded-lg text-xs text-amber-300 hidden">
-  ☕ Se descontarán aprox. <span id="gramosCafeCalculados" class="font-bold">0g</span> de café en grano del depósito.
+<!-- TICKET ACTUAL DEL USUARIO -->
+<div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+<p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ticket Actual de Venta</p>
+<div id="listaTicketActualBarra" class="space-y-2 max-h-48 overflow-y-auto">
+<p class="text-xs text-slate-500 text-center py-2">No hay ítems seleccionados.</p>
 </div>
 
 <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center">
-<span id="resumenBarraCount" class="text-xs text-slate-400">0 ítems</span>
-<button type="button" id="btnConfirmarBarra" class="bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-bold px-5 py-2.5 rounded-lg transition text-sm shadow-md active:scale-95" disabled>
-✅ Registrar Consumo Múltiple
+<span class="text-sm font-bold">Total: <span id="ticketTotalMonto" class="text-sky-400 font-black">0.00 BOB</span></span>
+<button type="button" id="btnEmitirTicketVenta" class="bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-bold px-5 py-2.5 rounded-lg transition text-sm shadow-md active:scale-95" disabled>
+🧾 Emitir Ticket
 </button>
 </div>
 </div>
 </div>
 </section>
 
-<!-- 5. SECCIÓN: INGRESO DE MERCADERÍA -->
+<!-- 5. SECCIÓN: RECIBOS / TICKETS DE VENTA -->
+<section id="sec-tickets" class="seccion-vista space-y-4">
+<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+<div class="border-b border-slate-100 pb-3 flex justify-between items-center">
+<div>
+<h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+<span>🧾</span> Recibos y Tickets Emitidos
+</h2>
+<p class="text-xs text-slate-500 mt-0.5">Historial de ventas de barra separadas por tickets individuales</p>
+</div>
+</div>
+
+<div id="contenedorRecibosTickets" class="space-y-3"></div>
+<div id="emptyRecibos" class="text-center text-slate-400 text-sm py-8 hidden">
+No hay recibos o tickets registrados.
+</div>
+</div>
+</section>
+
+<!-- 6. SECCIÓN: INGRESO DE MERCADERÍA -->
 <section id="sec-ingreso" class="seccion-vista">
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
 <div class="border-b border-slate-100 pb-3">
@@ -339,7 +407,7 @@ Control de Depósito v7.5
 </div>
 </section>
 
-<!-- 6. SECCIÓN: INSUMOS Y DEPÓSITO PURO -->
+<!-- 7. SECCIÓN: INSUMOS Y DEPÓSITO PURO -->
 <section id="sec-insumos" class="seccion-vista space-y-5">
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
 <div class="border-b border-slate-100 pb-3 flex justify-between items-center">
@@ -347,7 +415,7 @@ Control de Depósito v7.5
 <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
 <span>🧪</span> Gestión de Insumos (Depósito Puro)
 </h2>
-<p class="text-xs text-slate-500 mt-0.5">Control de materias primas que no se muestran en la vitrina de la cafetería</p>
+<p class="text-xs text-slate-500 mt-0.5">Control de materias primas que no se muestran en la vitrina</p>
 </div>
 </div>
 
@@ -366,7 +434,7 @@ Control de Depósito v7.5
 </div>
 </section>
 
-<!-- 7. SECCIÓN: BAJAS, MERMAS Y CORTESÍAS (NUEVO) -->
+<!-- 8. SECCIÓN: BAJAS, MERMAS Y CORTESÍAS -->
 <section id="sec-bajas" class="seccion-vista">
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
 <div class="border-b border-slate-100 pb-3">
@@ -428,7 +496,7 @@ Control de Depósito v7.5
 </div>
 </section>
 
-<!-- 8. SECCIÓN: PLANILLA DE CIERRE DE TURNO (NUEVO) -->
+<!-- 9. SECCIÓN: PLANILLA DE CIERRE DE TURNO -->
 <section id="sec-cierre" class="seccion-vista space-y-4">
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
 <div class="border-b border-slate-100 pb-3 flex justify-between items-center flex-wrap gap-2">
@@ -465,7 +533,7 @@ Control de Depósito v7.5
 </div>
 </section>
 
-<!-- 9. SECCIÓN: REPORTES E HISTÓRICO CON EXPORTACIÓN A EXCEL (NUEVO) -->
+<!-- 10. SECCIÓN: REPORTES E HISTÓRICO CON EXPORTACIÓN A EXCEL -->
 <section id="sec-reportes" class="seccion-vista space-y-4">
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
 <div class="border-b border-slate-100 pb-3 flex justify-between items-center flex-wrap gap-3">
@@ -507,7 +575,7 @@ Control de Depósito v7.5
 </div>
 </section>
 
-<!-- 10. SECCIÓN: NUEVO PRODUCTO / INSUMO Y MANTENIMIENTO (ADMIN) -->
+<!-- 11. SECCIÓN: NUEVO PRODUCTO / INSUMO (ADMIN) -->
 <section id="sec-nuevo_prod" class="seccion-vista">
 <div id="content-nuevo_prod" class="space-y-4">
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
@@ -552,19 +620,19 @@ Control de Depósito v7.5
 </div>
 </section>
 
-<!-- 11. SECCIÓN: HISTORIAL DE MOVIMIENTOS -->
+<!-- 12. SECCIÓN: BITÁCORA DE MOVIMIENTOS (TRASPASOS E INGRESOS POR DÍAS RETRÁCTILES) -->
 <section id="sec-historial" class="seccion-vista">
 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
 <div class="flex justify-between items-center border-b border-slate-100 pb-3">
 <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-<span>📑</span> Bitácora de Movimientos
+<span>📑</span> Bitácora de Traspasos e Ingresos (Por Días)
 </h2>
 </div>
 
-<div id="contenedorHistorial" class="space-y-3"></div>
+<div id="contenedorHistorialDias" class="space-y-3"></div>
 
 <div id="emptyHistorial" class="text-center text-slate-400 text-sm py-8 hidden">
-Aún no hay registros en el historial.
+Aún no hay registros en la bitácora.
 </div>
 </div>
 </section>
