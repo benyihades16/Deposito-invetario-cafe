@@ -13,7 +13,7 @@ const firebaseConfig = {
   measurementId: "G-XM7N3YRZJ3"
 };
 
-const ADMIN_PIN = "1234";
+const ADMIN_PIN = "1706";
 const GRAMOS_POR_CAFE_DEF = 18; // 18g estándar por defecto
 
 const app = initializeApp(firebaseConfig);
