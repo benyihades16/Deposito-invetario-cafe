@@ -912,6 +912,17 @@ window.reiniciarStockTodo = function() {
   }
 };
 
+window.reiniciarCafeGranoAdmin = function() {
+  if (sessionStorage.getItem('usuarioLogueado')?.toLowerCase() !== 'administrador') return;
+  
+  if (confirm("⚠️ ¿Estás seguro de restablecer a 0 el café en grano (tanto el inicial como el actual)?")) {
+    cafeGranoData.inicial = 0;
+    cafeGranoData.actual = 0;
+    set(cafeGranoRef, cafeGranoData);
+    alert("✅ El control de café en grano ha sido restablecido a 0.");
+  }
+};
+
 // --- RENDER GENERAL ---
 function renderTodo() {
   renderInventario();
