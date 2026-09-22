@@ -649,7 +649,7 @@ function emitirTicketVenta() {
   irASeccion('tab-tickets');
 }
 
-// --- RECIBOS / TICKETS ---
+// --- RECIBOS / TICKETS (Con Números Correlativos Secuenciales) ---
 function renderRecibosTickets() {
   const contenedor = document.getElementById('contenedorRecibosTickets');
   const empty = document.getElementById('emptyRecibos');
@@ -664,7 +664,13 @@ function renderRecibosTickets() {
   }
   empty?.classList.add('hidden');
 
+  // Ordenamos cronológicamente para asignar números correlativos exactos (T-0001, T-0002...)
+  const ventasCronologicas = [...ventas].sort((a, b) => a.id - b.id);
+
   ventas.forEach(reg => {
+    const indexCorrelativo = ventasCronologicas.findIndex(v => v._firebaseKey === reg._firebaseKey) + 1;
+    const numeroTicketStr = `T-${String(indexCorrelativo).padStart(4, '0')}`;
+
     const card = document.createElement('div');
     card.className = 'bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2 text-xs';
     const itemsHTML = reg.items ? reg.items.map(it => `
@@ -676,7 +682,7 @@ function renderRecibosTickets() {
 
     card.innerHTML = `
       <div class="flex justify-between items-center border-b border-slate-200 pb-2">
-        <span class="font-bold text-slate-900">🧾 Ticket #${reg.id.toString().slice(-6)}</span>
+        <span class="font-bold text-slate-900">🧾 Ticket #${numeroTicketStr}</span>
         <span class="text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded font-semibold">👤 ${reg.usuario}</span>
       </div>
       <div class="space-y-1 bg-white p-2.5 rounded-lg border border-slate-200">${itemsHTML}</div>
@@ -1320,7 +1326,28 @@ window.descargarExcelMovimientos = function() {
   document.body.removeChild(link);
 };
 
-// --- BITÁCORA DE MOVIMIENTOS ---
+// --- ANULACIÓN INDIVIDUAL EN BITÁCORA ---
+window.anularMovimientoBitacora = function(firebaseKey, usuarioMovimiento) {
+  const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
+  const esAdmin = usuarioLogueado?.toLowerCase() === 'administrador';
+
+  if (!esAdmin && usuarioLogueado !== usuarioMovimiento) {
+    alert("❌ Solo puedes anular tus propios movimientos o debes ser Administrador.");
+    return;
+  }
+
+  if (confirm("¿Estás seguro de anular y eliminar este registro de la bitácora?")) {
+    remove(ref(db, `historial/${firebaseKey}`))
+      .then(() => {
+        alert("✅ Movimiento anulado correctamente.");
+      })
+      .catch((error) => {
+        alert("❌ Error al anular: " + error.message);
+      });
+  }
+};
+
+// --- BITÁCORA DE MOVIMIENTOS (Agrupada por Turno y con Anulación por Ítem) ---
 function renderHistorial() {
   const contenedor = document.getElementById('contenedorHistorial');
   const empty = document.getElementById('emptyHistorial');
@@ -1339,23 +1366,66 @@ function renderHistorial() {
   }
   empty?.classList.add('hidden');
 
+  // Agrupar movimientos por Fecha y Usuario para unificar los traspasos/ingresos del turno en una sola tarjeta limpia
+  const gruposTurno = {};
   movsBitacora.forEach(reg => {
+    const clave = `${reg.fechaCorta}_${reg.usuario}`;
+    if (!gruposTurno[clave]) {
+      gruposTurno[clave] = {
+        fechaCorta: reg.fechaCorta,
+        usuario: reg.usuario,
+        registros: []
+      };
+    }
+    gruposTurno[clave].registros.push(reg);
+  });
+
+  Object.values(gruposTurno).forEach(grupo => {
     const card = document.createElement('div');
-    card.className = 'bg-white border border-slate-200 rounded-xl p-3 space-y-2 shadow-sm text-xs';
-    const itemsHTML = reg.items ? reg.items.map(it => `
-      <div class="flex justify-between items-center py-1 border-b border-slate-100 last:border-0">
-        <span>${it.nombre}</span>
-        <span class="font-bold text-sky-600">${it.cantidad}</span>
-      </div>
-    `).join('') : '';
+    card.className = 'bg-white border border-slate-200 rounded-xl p-3 space-y-3 shadow-sm text-xs';
+    
+    // Ordenar cronológicamente los registros dentro del grupo
+    grupo.registros.sort((a, b) => a.id - b.id);
+
+    let contenidoRegistrosHTML = '';
+    grupo.registros.forEach(reg => {
+      const horaMovimiento = reg.fecha ? reg.fecha.split(' - ')[1] || '' : '';
+      const itemsHTML = reg.items ? reg.items.map(it => `
+        <div class="flex justify-between items-center py-1 border-b border-slate-100 last:border-0">
+          <span class="text-slate-800">${it.nombre}</span>
+          <span class="font-bold text-sky-600">${it.cantidad}</span>
+        </div>
+      `).join('') : '';
+
+      const usuarioActual = sessionStorage.getItem('usuarioLogueado');
+      const esAdmin = usuarioActual?.toLowerCase() === 'administrador';
+      const puedeBorrar = esAdmin || reg.usuario === usuarioActual;
+
+      contenidoRegistrosHTML += `
+        <div class="bg-slate-50 border border-slate-100 rounded-lg p-2.5 space-y-1.5">
+          <div class="flex justify-between items-center border-b border-slate-200/60 pb-1">
+            <span class="font-bold px-1.5 py-0.5 rounded text-[10px] bg-sky-100 text-sky-800">${reg.tipo}</span>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] text-slate-500 font-mono">⏰ ${horaMovimiento} | ${reg.origen || ''}</span>
+              ${puedeBorrar ? `<button onclick="anularMovimientoBitacora('${reg._firebaseKey}', '${reg.usuario}')" class="text-rose-500 hover:text-rose-700 text-xs font-bold px-1.5 py-0.5 rounded bg-rose-50 transition" title="Anular este movimiento">❌ Anular</button>` : ''}
+            </div>
+          </div>
+          <div class="space-y-0.5">${itemsHTML}</div>
+        </div>
+      `;
+    });
 
     card.innerHTML = `
-      <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
-        <span class="font-bold px-2 py-0.5 rounded text-[10px] bg-sky-100 text-sky-800">${reg.tipo}</span>
-        <span class="font-bold text-slate-700">👤 ${reg.usuario}</span>
+      <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+        <span class="font-bold text-slate-900 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span> 
+          Turno / Movimientos de ${grupo.usuario}
+        </span>
+        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono font-bold">${grupo.fechaCorta}</span>
       </div>
-      <div class="space-y-0.5 bg-slate-50 p-2 rounded-lg">${itemsHTML}</div>
-      <div class="text-[10px] text-slate-400 text-right font-mono">${reg.fecha} | ${reg.origen || ''}</div>
+      <div class="space-y-2">
+        ${contenidoRegistrosHTML}
+      </div>
     `;
     contenedor.appendChild(card);
   });
