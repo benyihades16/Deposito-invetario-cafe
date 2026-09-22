@@ -128,14 +128,18 @@ function configurarModalLogin() {
         <p class="text-xs text-slate-500">Selecciona tu perfil para ingresar</p>
       </div>
 
-      <div id="gridPerfiles" class="grid grid-cols-2 gap-3 w-full my-2">
-        <button type="button" data-usuario="Administrador" class="perfil-card flex flex-col items-center justify-center p-3.5 rounded-xl border-2 border-slate-200 hover:border-amber-500 hover:bg-amber-50/50 transition cursor-pointer group">
-          <span class="text-2xl mb-1">👑</span>
-          <span class="font-bold text-xs text-slate-800 group-hover:text-amber-700">Administrador</span>
+      <div id="gridPerfiles" class="grid grid-cols-3 gap-2 w-full my-2">
+        <button type="button" data-usuario="Administrador" class="perfil-card flex flex-col items-center justify-center p-3 rounded-xl border-2 border-slate-200 hover:border-amber-500 hover:bg-amber-50/50 transition cursor-pointer group">
+          <span class="text-xl mb-1">👑</span>
+          <span class="font-bold text-[11px] text-slate-800 group-hover:text-amber-700">Administrador</span>
         </button>
-        <button type="button" data-usuario="Operador" class="perfil-card flex flex-col items-center justify-center p-3.5 rounded-xl border-2 border-slate-200 hover:border-sky-500 hover:bg-sky-50/50 transition cursor-pointer group">
-          <span class="text-2xl mb-1">👤</span>
-          <span class="font-bold text-xs text-slate-800 group-hover:text-sky-700">Operador</span>
+        <button type="button" data-usuario="Usuario 1" class="perfil-card flex flex-col items-center justify-center p-3 rounded-xl border-2 border-slate-200 hover:border-sky-500 hover:bg-sky-50/50 transition cursor-pointer group">
+          <span class="text-xl mb-1">👤</span>
+          <span class="font-bold text-[11px] text-slate-800 group-hover:text-sky-700">Usuario 1</span>
+        </button>
+        <button type="button" data-usuario="Usuario 2" class="perfil-card flex flex-col items-center justify-center p-3 rounded-xl border-2 border-slate-200 hover:border-sky-500 hover:bg-sky-50/50 transition cursor-pointer group">
+          <span class="text-xl mb-1">👤</span>
+          <span class="font-bold text-[11px] text-slate-800 group-hover:text-sky-700">Usuario 2</span>
         </button>
       </div>
 
