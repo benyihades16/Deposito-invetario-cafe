@@ -917,15 +917,18 @@ function renderInventario() {
   const tbodyDep = document.getElementById('tablaDeposito');
   if (tbodyDep) {
     tbodyDep.innerHTML = '';
-    const depositoItems = inventario.filter(p => p.tipo !== 'insumo');
+    // CORRECCIÓN: Se quita el filtro p.tipo !== 'insumo' para que los insumos (vasos, tapas, etc.) también aparezcan en Depósito
+    const depositoItems = inventario.filter(p => p.tipo !== 'cafe');
     ordenarInventario(depositoItems).forEach(prod => {
       const esCafe = prod.tipo === 'cafe';
+      const esInsumo = prod.tipo === 'insumo';
       const tr = document.createElement('tr');
       tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
       tr.innerHTML = `
         <td class="py-3 px-3 font-semibold text-slate-800">
           ${prod.nombre} 
           ${esCafe ? `<span class="ml-1 text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-normal">Café (${prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF}g)</span>` : ''}
+          ${esInsumo ? `<span class="ml-1 text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-normal">Insumo</span>` : ''}
         </td>
         <td class="py-3 px-3 text-center text-slate-700 font-mono font-bold">${esCafe ? 'N/A' : prod.stockDeposito}</td>
         ${esAdmin ? `<td class="py-3 px-3 text-center thAdminAcciones"><button onclick="eliminarProducto(${prod.id}, '${prod.nombre}')" class="text-rose-500 hover:text-rose-700 bg-rose-50 p-1 rounded transition">🗑️</button></td>` : ''}
