@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue, set, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-// Configuración de Firebase
+// Configuración de Firebase[cite: 1]
 const firebaseConfig = {
   apiKey: "AIzaSyAivVsjrsxrvzaqANN9FMBNRNVX4puHo3c",
   authDomain: "control-deposito26.firebaseapp.com",
@@ -13,25 +13,26 @@ const firebaseConfig = {
   measurementId: "G-XM7N3YRZJ3"
 };
 
-const ADMIN_PIN = "1234";
-const GRAMOS_POR_CAFE = 18; // 18g por cada bebida de café estándar
+const ADMIN_PIN = "1234";[cite: 1]
+const GRAMOS_POR_CAFE_DEF = 18; // 18g estándar por defecto[cite: 1]
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+const app = initializeApp(firebaseConfig);[cite: 1]
+const db = getDatabase(app);[cite: 1]
 
-const inventoryRef = ref(db, 'inventario');
-const historyRef = ref(db, 'historial');
-const cafeGranoRef = ref(db, 'cafeGrano');
+const inventoryRef = ref(db, 'inventario');[cite: 1]
+const historyRef = ref(db, 'historial');[cite: 1]
+const cafeGranoRef = ref(db, 'cafeGrano');[cite: 1]
 
-let inventario = [];
-let historialMovimientos = [];
-let cafeGranoData = { inicial: 1000, actual: 1000 };
-let listaTraspasoActual = [];
-let listaIngresoActual = [];
-let listaBajaActual = [];
-let listaTicketBarraActual = [];
+let inventario = [];[cite: 1]
+let historialMovimientos = [];[cite: 1]
+let cafeGranoData = { inicial: 1000, actual: 1000 };[cite: 1]
+let listaTraspasoActual = [];[cite: 1]
+let listaIngresoActual = [];[cite: 1]
+let listaBajaActual = [];[cite: 1]
+let listaTicketBarraActual = [];[cite: 1]
+let filtroBusquedaBarra = ''; // Filtro dinámico para la lupa de barra[cite: 1]
 
-// Helper para formato de fecha único y estándar (DD/MM/YYYY)
+// Helper para formato de fecha único y estándar (DD/MM/YYYY)[cite: 1]
 function getFechaHoy() {
   const d = new Date();
   const dia = String(d.getDate()).padStart(2, '0');
@@ -40,7 +41,7 @@ function getFechaHoy() {
   return `${dia}/${mes}/${anio}`;
 }
 
-// FUNCIÓN DE ORDENAMIENTO: Leches primero, luego A-Z
+// FUNCIÓN DE ORDENAMIENTO: Leches primero, luego A-Z[cite: 1]
 function ordenarInventario(lista) {
   return [...lista].sort((a, b) => {
     const aEsLeche = a.nombre.toLowerCase().includes('leche');
@@ -53,7 +54,7 @@ function ordenarInventario(lista) {
   });
 }
 
-// Escuchar cambios de inventario en vivo
+// Escuchar cambios de inventario en vivo[cite: 1]
 onValue(inventoryRef, (snapshot) => {
   const data = snapshot.val();
   if (data) {
@@ -64,7 +65,8 @@ onValue(inventoryRef, (snapshot) => {
       tipo: item.tipo || 'producto',
       stockDeposito: item.stockDeposito !== undefined ? item.stockDeposito : (item.stock || 0),
       stockCafeteria: item.stockCafeteria !== undefined ? item.stockCafeteria : 0,
-      precio: item.precio || 0
+      precio: item.precio || 0,
+      gramosPorTaza: item.gramosPorTaza !== undefined ? item.gramosPorTaza : GRAMOS_POR_CAFE_DEF
     }));
   } else {
     inventario = [];
@@ -72,7 +74,7 @@ onValue(inventoryRef, (snapshot) => {
   renderTodo();
 });
 
-// Escuchar cambios de historial en vivo
+// Escuchar cambios de historial en vivo[cite: 1]
 onValue(historyRef, (snapshot) => {
   const data = snapshot.val();
   if (data) {
@@ -86,7 +88,7 @@ onValue(historyRef, (snapshot) => {
   renderTodo();
 });
 
-// Escuchar cambios de café en grano en vivo
+// Escuchar cambios de café en grano en vivo[cite: 1]
 onValue(cafeGranoRef, (snapshot) => {
   const data = snapshot.val();
   if (data) {
@@ -95,7 +97,7 @@ onValue(cafeGranoRef, (snapshot) => {
   renderControlCafe();
 });
 
-// --- GESTIÓN DE PERFILES Y SESIÓN (Sincronizado con HTML) ---
+// --- GESTIÓN DE PERFILES Y SESIÓN ---[cite: 1]
 
 function verificarSesion() {
   const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
@@ -206,7 +208,7 @@ function irASeccion(tabId) {
   }
 }
 
-// --- CONTROL DE CAFÉ EN GRANO ---
+// --- CONTROL DE CAFÉ EN GRANO ---[cite: 1]
 function renderControlCafe() {
   const elInicial = document.getElementById('cafeMontoInicial');
   const elReal = document.getElementById('cafeRestanteReal');
@@ -230,7 +232,7 @@ window.agregarCafeGranoAdmin = function() {
   alert(`✅ Se agregaron ${gramos}g al control de café en grano.`);
 };
 
-// --- GESTIÓN DE PRODUCTOS ---
+// --- GESTIÓN DE PRODUCTOS ---[cite: 1]
 function guardarProductoNuevo() {
   if (sessionStorage.getItem('usuarioLogueado') !== 'Administrador') return;
 
@@ -238,11 +240,13 @@ function guardarProductoNuevo() {
   const tipoInput = document.getElementById('prodTipo');
   const stockDepInput = document.getElementById('prodStockDep');
   const stockCafInput = document.getElementById('prodStockCaf');
+  const gramosCafeInput = document.getElementById('prodGramosCafe'); // Campo opcional o dinámico para gramos de café
 
   const nombre = nombreInput?.value.trim();
   const tipo = tipoInput ? tipoInput.value : 'producto';
   const stockDep = parseInt(stockDepInput?.value) || 0;
   const stockCaf = parseInt(stockCafInput?.value) || 0;
+  const gramosPorTaza = tipo === 'cafe' ? (parseFloat(gramosCafeInput?.value) || GRAMOS_POR_CAFE_DEF) : 0;
 
   if (!nombre) {
     alert("Ingresa el nombre del ítem.");
@@ -252,10 +256,11 @@ function guardarProductoNuevo() {
   const nuevoProd = {
     id: Date.now(),
     nombre: nombre,
-    tipo: tipo,
+    tipo: tipo, // 'producto', 'insumo', 'cafe'[cite: 1]
     stockDeposito: stockDep,
-    stockCafeteria: tipo === 'insumo' ? 0 : stockCaf,
-    precio: 0
+    stockCafeteria: (tipo === 'insumo' || tipo === 'cafe') ? 0 : stockCaf, // Café no usa stock de cafetería tradicional (es ilimitado)[cite: 1]
+    precio: 0,
+    gramosPorTaza: gramosPorTaza
   };
 
   inventario.push(nuevoProd);
@@ -264,6 +269,7 @@ function guardarProductoNuevo() {
   if (nombreInput) nombreInput.value = '';
   if (stockDepInput) stockDepInput.value = 0;
   if (stockCafInput) stockCafInput.value = 0;
+  if (gramosCafeInput) gramosCafeInput.value = GRAMOS_POR_CAFE_DEF;
 
   alert(`✅ "${nombre}" agregado correctamente.`);
   irASeccion(tipo === 'insumo' ? 'tab-insumos' : 'tab-stock');
@@ -278,7 +284,7 @@ window.eliminarProducto = function(id, nombre) {
   }
 };
 
-// --- REGISTRO DE MOVIMIENTOS ---
+// --- REGISTRO DE MOVIMIENTOS ---[cite: 1]
 function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   const usuario = sessionStorage.getItem('usuarioLogueado') || 'Usuario';
   const ahora = new Date();
@@ -298,7 +304,7 @@ function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   push(historyRef, nuevoRegistro);
 }
 
-// --- TRASPASOS ---
+// --- TRASPASOS ---[cite: 1]
 function agregarATraspaso() {
   const select = document.getElementById('selectProductoTraspaso');
   const cantInput = document.getElementById('cantTraspaso');
@@ -349,7 +355,7 @@ function confirmarTraspasoMultiple() {
     const prod = inventario.find(p => p.id === itemTraspaso.id);
     if (prod) {
       prod.stockDeposito = Math.max(0, prod.stockDeposito - itemTraspaso.cantidad);
-      if (prod.tipo !== 'insumo') {
+      if (prod.tipo !== 'insumo' && prod.tipo !== 'cafe') {
         prod.stockCafeteria += itemTraspaso.cantidad;
       }
     }
@@ -363,29 +369,58 @@ function confirmarTraspasoMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- VENTAS DE BARRA (BOTONES Y TICKETS) ---
+// --- VENTAS DE BARRA (BOTONES, BUSCADOR LUPA Y TICKETS) ---[cite: 1]
 function renderBotonesBarra() {
   const grid = document.getElementById('gridBotonesBarra');
   if (!grid) return;
 
+  // Asegurar la existencia del buscador (lupa) encima del grid si no ha sido creado
+  let containerPadre = grid.parentElement;
+  let buscadorInput = document.getElementById('inputBuscadorBarra');
+  if (!buscadorInput && containerPadre) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'mb-3 flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 shadow-inner';
+    wrapper.innerHTML = `
+      <span class="text-sm mr-2">🔍</span>
+      <input type="text" id="inputBuscadorBarra" placeholder="Buscar producto en barra..." class="bg-transparent text-xs text-white focus:outline-none w-full" value="${filtroBusquedaBarra}" />
+    `;
+    containerPadre.insertBefore(wrapper, grid);
+    
+    document.getElementById('inputBuscadorBarra').addEventListener('input', (e) => {
+      filtroBusquedaBarra = e.target.value.toLowerCase();
+      renderBotonesBarra();
+    });
+  }
+
   grid.innerHTML = '';
-  const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
+  // Filtrar productos visibles (excluyendo insumos, incluyendo café y productos normales)[cite: 1]
+  let productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
+
+  if (filtroBusquedaBarra) {
+    productosVisibles = productosVisibles.filter(p => p.nombre.toLowerCase().includes(filtroBusquedaBarra));
+  }
 
   if (productosVisibles.length === 0) {
-    grid.innerHTML = `<p class="col-span-full text-xs text-slate-500 italic text-center py-4">No hay productos en cafetería.</p>`;
+    grid.innerHTML = `<p class="col-span-full text-xs text-slate-500 italic text-center py-4">No se encontraron productos.</p>`;
     return;
   }
 
   productosVisibles.forEach(prod => {
+    const esCafe = prod.tipo === 'cafe';
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3 rounded-xl text-left flex flex-col justify-between transition active:scale-95 shadow';
+    // Cuadros más compactos y sin el texto "+ agregar"[cite: 1]
+    btn.className = 'bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded-xl text-left flex flex-col justify-between transition active:scale-95 shadow';
+    
+    let infoStockHtml = esCafe 
+      ? `<span class="text-[10px] text-amber-400 font-semibold">⚡ Stock Ilimitado</span>` 
+      : `<span class="text-[10px] text-sky-400">Stock: ${prod.stockCafeteria}</span>`;
+
     btn.innerHTML = `
       <div>
-        <span class="font-bold text-slate-100 text-xs block">${prod.nombre}</span>
-        <span class="text-[10px] text-sky-400">Stock: ${prod.stockCafeteria}</span>
+        <span class="font-bold text-slate-100 text-xs block truncate">${prod.nombre}</span>
+        ${infoStockHtml}
       </div>
-      <span class="text-xs font-bold text-indigo-400 mt-2 flex items-center gap-1">➕ Agregar</span>
     `;
     btn.addEventListener('click', () => agregarItemTicketBarra(prod.id));
     grid.appendChild(btn);
@@ -399,7 +434,8 @@ function agregarItemTicketBarra(idProd) {
   const existente = listaTicketBarraActual.find(it => it.id === idProd);
   const cantActual = existente ? existente.cantidad : 0;
 
-  if (cantActual + 1 > prod.stockCafeteria) {
+  // Si no es café, validamos el stock físico de cafetería; si es café, es ilimitado[cite: 1]
+  if (prod.tipo !== 'cafe' && (cantActual + 1 > prod.stockCafeteria)) {
     alert(`Stock insuficiente en Cafetería para "${prod.nombre}".`);
     return;
   }
@@ -407,7 +443,7 @@ function agregarItemTicketBarra(idProd) {
   if (existente) {
     existente.cantidad += 1;
   } else {
-    listaTicketBarraActual.push({ id: prod.id, nombre: prod.nombre, cantidad: 1, precio: prod.precio || 0 });
+    listaTicketBarraActual.push({ id: prod.id, nombre: prod.nombre, cantidad: 1, precio: prod.precio || 0, tipo: prod.tipo, gramosPorTaza: prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF });
   }
 
   renderTicketActualBarra();
@@ -460,37 +496,41 @@ function renderTicketActualBarra() {
 function emitirTicketVenta() {
   if (listaTicketBarraActual.length === 0) return;
 
+  // Validar stock solo para productos normales (el café es ilimitado)[cite: 1]
   for (let item of listaTicketBarraActual) {
-    const prod = inventario.find(p => p.id === item.id);
-    if (!prod || prod.stockCafeteria < item.cantidad) {
-      alert(`Stock insuficiente para "${item.nombre}" en cafetería.`);
-      return;
+    if (item.tipo !== 'cafe') {
+      const prod = inventario.find(p => p.id === item.id);
+      if (!prod || prod.stockCafeteria < item.cantidad) {
+        alert(`Stock insuficiente para "${item.nombre}" en cafetería.`);
+        return;
+      }
     }
   }
+
+  // Descontar stock correspondiente de productos normales y acumular gramos de café[cite: 1]
+  let gramosConsumidosTotal = 0;
 
   listaTicketBarraActual.forEach(item => {
     const prod = inventario.find(p => p.id === item.id);
     if (prod) {
-      prod.stockCafeteria = Math.max(0, prod.stockCafeteria - item.cantidad);
+      if (prod.tipo === 'cafe') {
+        // Cálculo automático de gramos por cada café vendido (ej: 2 Americanos x 18g = 36g)[cite: 1]
+        const gramosItem = item.cantidad * (prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF);
+        gramosConsumidosTotal += gramosItem;
+      } else {
+        prod.stockCafeteria = Math.max(0, prod.stockCafeteria - item.cantidad);
+      }
     }
   });
 
-  let tazasCafe = 0;
-  listaTicketBarraActual.forEach(item => {
-    const nameL = item.nombre.toLowerCase();
-    if (nameL.includes('cafe') || nameL.includes('café') || nameL.includes('espresso') || nameL.includes('latte') || nameL.includes('cappuccino') || nameL.includes('mocaccino') || nameL.includes('cortado')) {
-      tazasCafe += item.cantidad;
-    }
-  });
-
-  const gramosConsumidos = tazasCafe * GRAMOS_POR_CAFE;
-  if (gramosConsumidos > 0) {
-    cafeGranoData.actual = Math.max(0, cafeGranoData.actual - gramosConsumidos);
+  // Restar en tiempo real del medidor principal de Café en Grano[cite: 1]
+  if (gramosConsumidosTotal > 0) {
+    cafeGranoData.actual = Math.max(0, cafeGranoData.actual - gramosConsumidosTotal);
     set(cafeGranoRef, cafeGranoData);
   }
 
   set(inventoryRef, inventario);
-  registrarMovimientoEnTurno('VENTA_BARRA', listaTicketBarraActual, gramosConsumidos > 0 ? `Ventas Barra (-${gramosConsumidos}g Café)` : 'Ventas Barra');
+  registrarMovimientoEnTurno('VENTA_BARRA', listaTicketBarraActual, gramosConsumidosTotal > 0 ? `Ventas Barra (-${gramosConsumidosTotal}g Café)` : 'Ventas Barra');
 
   listaTicketBarraActual = [];
   renderTicketActualBarra();
@@ -499,7 +539,7 @@ function emitirTicketVenta() {
   irASeccion('tab-tickets');
 }
 
-// --- RECIBOS / TICKETS ---
+// --- RECIBOS / TICKETS ---[cite: 1]
 function renderRecibosTickets() {
   const contenedor = document.getElementById('contenedorRecibosTickets');
   const empty = document.getElementById('emptyRecibos');
@@ -536,7 +576,7 @@ function renderRecibosTickets() {
   });
 }
 
-// --- INGRESOS ---
+// --- INGRESOS ---[cite: 1]
 function agregarAIngreso() {
   const selectDestino = document.getElementById('selectDestinoIngreso');
   const selectProd = document.getElementById('selectProductoIngreso');
@@ -580,7 +620,7 @@ function confirmarIngresoStockMultiple() {
     const prod = inventario.find(p => p.id === item.id);
     if (prod) {
       if (item.destino === 'deposito') prod.stockDeposito += item.cantidad;
-      else prod.stockCafeteria += item.cantidad;
+      else if (prod.tipo !== 'cafe') prod.stockCafeteria += item.cantidad;
     }
   });
 
@@ -602,7 +642,7 @@ function confirmarIngresoStockMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- BAJAS Y CORTESÍAS ---
+// --- BAJAS Y CORTESÍAS ---[cite: 1]
 function agregarABaja() {
   const selectUbicacion = document.getElementById('selectUbicacionBaja');
   const selectProd = document.getElementById('selectProductoBaja');
@@ -620,7 +660,7 @@ function agregarABaja() {
   if (!prod) return;
 
   const stockDisponible = ubicacion === 'cafeteria' ? prod.stockCafeteria : prod.stockDeposito;
-  if (cantidad > stockDisponible) {
+  if (prod.tipo !== 'cafe' && cantidad > stockDisponible) {
     alert(`Stock insuficiente. Stock actual: ${stockDisponible}`);
     return;
   }
@@ -653,7 +693,7 @@ function confirmarBajasMultiple() {
 
   listaBajaActual.forEach(item => {
     const prod = inventario.find(p => p.id === item.id);
-    if (prod) {
+    if (prod && prod.tipo !== 'cafe') {
       if (item.ubicacion === 'cafeteria') {
         prod.stockCafeteria = Math.max(0, prod.stockCafeteria - item.cantidad);
       } else {
@@ -680,7 +720,7 @@ function confirmarBajasMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- INSUMOS ---
+// --- INSUMOS ---[cite: 1]
 window.pasarInsumo = function(idInsumo) {
   const prod = inventario.find(p => p.id === idInsumo);
   if (!prod) return;
@@ -700,7 +740,7 @@ window.pasarInsumo = function(idInsumo) {
   alert(`✅ Se pasaron ${cantidad} de "${prod.nombre}".`);
 };
 
-// --- MANTENIMIENTO ADMIN ---
+// --- MANTENIMIENTO ADMIN ---[cite: 1]
 function renderPanelMantenimiento(nombreUsuario) {
   let panel = document.getElementById('panelMantenimientoAdmin');
   const tabContent = document.getElementById('sec-nuevo_prod');
@@ -761,7 +801,7 @@ window.reiniciarStockTodo = function() {
   }
 };
 
-// --- RENDER GENERAL ---
+// --- RENDER GENERAL ---[cite: 1]
 function renderTodo() {
   renderInventario();
   renderInsumos();
@@ -803,8 +843,8 @@ function renderInventario() {
         }
       });
 
-      const stockActual = prod.stockCafeteria;
-      const stockAnterior = Math.max(0, stockActual - entradasHoy + ventasHoy);
+      const stockActual = prod.tipo === 'cafe' ? 'Ilimitado' : prod.stockCafeteria;
+      const stockAnterior = prod.tipo === 'cafe' ? '-' : Math.max(0, prod.stockCafeteria - entradasHoy + ventasHoy);
 
       const tr = document.createElement('tr');
       tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
@@ -837,13 +877,13 @@ function renderInventario() {
   if (tbodyTot) {
     tbodyTot.innerHTML = '';
     ordenarInventario(inventario).forEach(prod => {
-      const total = prod.stockDeposito + prod.stockCafeteria;
+      const total = prod.tipo === 'cafe' ? 'Ilimitado' : (prod.stockDeposito + prod.stockCafeteria);
       const tr = document.createElement('tr');
       tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
       tr.innerHTML = `
         <td class="py-3 px-3 font-semibold text-slate-800">${prod.nombre}</td>
         <td class="py-3 px-3 text-center text-slate-500 font-mono">${prod.stockDeposito}</td>
-        <td class="py-3 px-3 text-center text-sky-600 font-mono">${prod.stockCafeteria}</td>
+        <td class="py-3 px-3 text-center text-sky-600 font-mono">${prod.tipo === 'cafe' ? 'Ilimitado' : prod.stockCafeteria}</td>
         <td class="py-3 px-3 text-right font-extrabold text-slate-900 font-mono">${total}</td>
       `;
       tbodyTot.appendChild(tr);
@@ -905,7 +945,7 @@ function renderSelectores() {
     const optT = document.createElement('option');
     optT.value = prod.id;
     optT.textContent = `${prod.nombre} (Depósito: ${prod.stockDeposito})`;
-    if (prod.stockDeposito <= 0) optT.disabled = true;
+    if (prod.stockDeposito <= 0 || prod.tipo === 'cafe') optT.disabled = true;
     selTraspaso.appendChild(optT);
   });
 
@@ -919,7 +959,7 @@ function renderSelectores() {
   todosOrdenados.forEach(prod => {
     const optJ = document.createElement('option');
     optJ.value = prod.id;
-    optJ.textContent = `${prod.nombre} (Dep: ${prod.stockDeposito} | Caf: ${prod.stockCafeteria})`;
+    optJ.textContent = `${prod.nombre} (Dep: ${prod.stockDeposito} | Caf: ${prod.tipo === 'cafe' ? 'Ilimitado' : prod.stockCafeteria})`;
     selBaja.appendChild(optJ);
   });
 }
@@ -1041,7 +1081,7 @@ function renderCierreTurno() {
     tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
     tr.innerHTML = `
       <td class="py-2.5 px-3 font-medium text-slate-800">${prod.nombre}</td>
-      <td class="py-2.5 px-3 text-center text-sky-700 font-mono font-bold">${prod.stockCafeteria}</td>
+      <td class="py-2.5 px-3 text-center text-sky-700 font-mono font-bold">${prod.tipo === 'cafe' ? 'Ilimitado' : prod.stockCafeteria}</td>
       <td class="py-2.5 px-3 text-center text-slate-600 font-mono">${prod.stockDeposito}</td>
     `;
     container.appendChild(tr);
@@ -1063,7 +1103,7 @@ window.copiarReporteWhatsApp = function() {
 
   const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
   productosVisibles.forEach(prod => {
-    texto += `• ${prod.nombre}: *${prod.stockCafeteria} unids*\n`;
+    texto += `• ${prod.nombre}: *${prod.tipo === 'cafe' ? 'Ilimitado' : prod.stockCafeteria + ' unids'}*\n`;
   });
 
   navigator.clipboard.writeText(texto).then(() => {
