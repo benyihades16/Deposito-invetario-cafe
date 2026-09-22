@@ -30,7 +30,8 @@ let listaTraspasoActual = [];
 let listaIngresoActual = [];
 let listaBajaActual = [];
 let listaTicketBarraActual = [];
-let filtroBusquedaBarra = ''; // Filtro dinámico para la lupa de barra
+let filtroBusquedaBarra = ''; 
+let counterMovimiento = 0; // Para garantizar IDs únicos en movimientos simultáneos
 
 // Helper para formato de fecha único y estándar (DD/MM/YYYY)
 function getFechaHoy() {
@@ -253,7 +254,6 @@ window.agregarCafeGranoAdmin = function() {
 function configurarSelectorTipoProducto() {
   const tipoInput = document.getElementById('prodTipo');
   if (tipoInput) {
-    // Asegurar opción 'cafe'
     if (!tipoInput.querySelector('option[value="cafe"]')) {
       const opt = document.createElement('option');
       opt.value = 'cafe';
@@ -314,7 +314,7 @@ window.eliminarProducto = function(id, nombre) {
   }
 };
 
-// --- REGISTRO DE MOVIMIENTOS ---
+// --- REGISTRO ROBUSTO DE MOVIMIENTOS ---
 function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   const usuario = sessionStorage.getItem('usuarioLogueado') || 'Usuario';
   const ahora = new Date();
@@ -322,16 +322,24 @@ function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   const horaStr = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   const nuevoRegistro = {
-    id: Date.now(),
+    id: Date.now() + (counterMovimiento++),
     tipo: tipo,
     usuario: usuario,
     fechaCorta: fechaCorta,
     fecha: `${fechaCorta} - ${horaStr}`,
     origen: origen || 'General',
-    items: itemsNuevos.map(it => ({ ...it, hora: horaStr }))
+    items: itemsNuevos.map(it => ({
+      id: it.id || Date.now(),
+      nombre: it.nombre || 'Ítem',
+      cantidad: it.cantidad || 0,
+      hora: horaStr
+    }))
   };
 
-  push(historyRef, nuevoRegistro);
+  push(historyRef, nuevoRegistro).catch(err => {
+    console.error("Error al registrar movimiento en Firebase:", err);
+    alert("❌ Error al guardar el movimiento en la base de datos.");
+  });
 }
 
 // --- TRASPASOS ---
@@ -422,7 +430,6 @@ function renderBotonesBarra() {
   }
 
   grid.innerHTML = '';
-  // Mostramos productos y cafés en barra (excluimos solo insumos)
   let productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
 
   if (filtroBusquedaBarra) {
@@ -652,7 +659,7 @@ function confirmarIngresoStockMultiple() {
   const grupos = {};
   listaIngresoActual.forEach(it => {
     if (!grupos[it.origenTexto]) grupos[it.origenTexto] = [];
-    grupos[it.origenTexto].push({ nombre: it.nombre, cantidad: it.cantidad });
+    grupos[it.origenTexto].push({ id: it.id, nombre: it.nombre, cantidad: it.cantidad });
   });
 
   Object.keys(grupos).forEach(origen => {
@@ -730,7 +737,7 @@ function confirmarBajasMultiple() {
   const grupos = {};
   listaBajaActual.forEach(it => {
     if (!grupos[it.origenTexto]) grupos[it.origenTexto] = [];
-    grupos[it.origenTexto].push({ nombre: it.nombre, cantidad: it.cantidad });
+    grupos[it.origenTexto].push({ id: it.id, nombre: it.nombre, cantidad: it.cantidad });
   });
 
   Object.keys(grupos).forEach(origen => {
@@ -759,7 +766,7 @@ window.pasarInsumo = function(idInsumo) {
 
   prod.stockDeposito -= cantidad;
   set(inventoryRef, inventario);
-  registrarMovimientoEnTurno('TRASPASO_INSUMO', [{ nombre: prod.nombre, cantidad: cantidad }], 'Depósito Insumos');
+  registrarMovimientoEnTurno('TRASPASO_INSUMO', [{ id: prod.id, nombre: prod.nombre, cantidad: cantidad }], 'Depósito Insumos');
   alert(`✅ Se pasaron ${cantidad} de "${prod.nombre}".`);
 };
 
@@ -833,16 +840,15 @@ function renderTodo() {
   renderBotonesBarra();
   renderTicketActualBarra();
   renderRecibosTickets();
+  renderReporteExcel();
+  renderHistorial();
   renderListaTraspaso();
   renderListaIngreso();
   renderListaBaja();
   renderCierreTurno();
-  renderReporteExcel();
-  renderHistorial();
 }
 
 function renderInventario() {
-  // Excluimos 'cafe' de las tablas de inventario físico (depósito y vitrina)
   const productosVisibles = inventario.filter(p => p.tipo !== 'insumo' && p.tipo !== 'cafe');
   const ordenados = ordenarInventario(productosVisibles);
   const esAdmin = sessionStorage.getItem('usuarioLogueado')?.trim().toLowerCase() === 'administrador';
@@ -1245,7 +1251,7 @@ function renderHistorial() {
         <span class="font-bold text-slate-700">👤 ${reg.usuario}</span>
       </div>
       <div class="space-y-0.5 bg-slate-50 p-2 rounded-lg">${itemsHTML}</div>
-      <div class="text-[10px] text-slate-400 text-right font-mono">${reg.fecha}</div>
+      <div class="text-[10px] text-slate-400 text-right font-mono">${reg.fecha} | ${reg.origen || ''}</div>
     `;
     contenedor.appendChild(card);
   });
