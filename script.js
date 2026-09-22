@@ -250,7 +250,7 @@ window.agregarCafeGranoAdmin = function() {
   alert(`✅ Se agregaron ${gramos}g al control de café en grano.`);
 };
 
-// --- GESTIÓN DE PRODUCTOS ---
+// --- GESTIÓN DE PRODUCTOS Y GRAMAJE DINÁMICO ---
 function configurarSelectorTipoProducto() {
   const tipoInput = document.getElementById('prodTipo');
   if (tipoInput) {
@@ -260,6 +260,32 @@ function configurarSelectorTipoProducto() {
       opt.textContent = 'Café (Preparación de Barra)';
       tipoInput.appendChild(opt);
     }
+
+    // Contenedor dinámico para gramos personalizados de café
+    let contenedorGramos = document.getElementById('contenedorGramosCafeGroup');
+    if (!contenedorGramos && tipoInput.parentElement) {
+      contenedorGramos = document.createElement('div');
+      contenedorGramos.id = 'contenedorGramosCafeGroup';
+      contenedorGramos.className = 'flex flex-col gap-1 mt-3 hidden';
+      contenedorGramos.innerHTML = `
+        <label class="text-xs font-semibold text-slate-300">Gramos por Taza (Personalizado):</label>
+        <input type="number" id="prodGramosCafe" class="bg-slate-950 border border-slate-700 text-xs text-white rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500" value="18" min="1" step="0.5" />
+        <span class="text-[10px] text-slate-500">Permite configurar gramos exactos (ej. 14g, 18g, 20g, 22g, etc.)</span>
+      `;
+      tipoInput.parentElement.insertAdjacentElement('afterend', contenedorGramos);
+    }
+
+    const actualizarVisibilidadGramos = () => {
+      const val = tipoInput.value;
+      if (val === 'cafe') {
+        contenedorGramos?.classList.remove('hidden');
+      } else {
+        contenedorGramos?.classList.add('hidden');
+      }
+    };
+
+    tipoInput.addEventListener('change', actualizarVisibilidadGramos);
+    actualizarVisibilidadGramos();
   }
 }
 
@@ -929,7 +955,7 @@ function renderInventario() {
   const elTotalPases = document.getElementById('statTotalPases');
   if (elTotalPases) {
     const hoyStr = getFechaHoy();
-    elTotalPases.textContent = historialMovimientos.filter(m => m.fechaCorta === hoyStr).length;
+    elTotalPases.textContent = historialMovimientos.filter(m => m.fechaCorta === hoyStr && (m.tipo.includes('TRASPASO') || m.tipo.includes('INGRESO') || m.tipo.includes('BAJA'))).length;
   }
 }
 
@@ -1223,19 +1249,27 @@ window.descargarExcelMovimientos = function() {
   document.body.removeChild(link);
 };
 
+// --- BITÁCORA DE MOVIMIENTOS (Solo Traspasos, Ingresos y Bajas) ---
 function renderHistorial() {
   const contenedor = document.getElementById('contenedorHistorial');
   const empty = document.getElementById('emptyHistorial');
   if (!contenedor) return;
 
   contenedor.innerHTML = '';
-  if (historialMovimientos.length === 0) {
+  
+  // Filtrar estrictamente para mostrar SOLO Traspasos, Ingresos y Bajas (se excluyen las ventas)
+  const movsBitacora = historialMovimientos.filter(m => {
+    const tipo = (m.tipo || '').toUpperCase();
+    return tipo.includes('TRASPASO') || tipo.includes('INGRESO') || tipo.includes('BAJA');
+  });
+
+  if (movsBitacora.length === 0) {
     empty?.classList.remove('hidden');
     return;
   }
   empty?.classList.add('hidden');
 
-  historialMovimientos.forEach(reg => {
+  movsBitacora.forEach(reg => {
     const card = document.createElement('div');
     card.className = 'bg-white border border-slate-200 rounded-xl p-3 space-y-2 shadow-sm text-xs';
     const itemsHTML = reg.items ? reg.items.map(it => `
