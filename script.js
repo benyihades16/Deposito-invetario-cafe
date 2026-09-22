@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue, set, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-// Configuración de Firebase[cite: 1]
+// Configuración de Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyAivVsjrsxrvzaqANN9FMBNRNVX4puHo3c",
   authDomain: "control-deposito26.firebaseapp.com",
@@ -13,26 +13,26 @@ const firebaseConfig = {
   measurementId: "G-XM7N3YRZJ3"
 };
 
-const ADMIN_PIN = "1234";[cite: 1]
-const GRAMOS_POR_CAFE_DEF = 18; // 18g estándar por defecto[cite: 1]
+const ADMIN_PIN = "1234";
+const GRAMOS_POR_CAFE_DEF = 18; // 18g estándar por defecto
 
-const app = initializeApp(firebaseConfig);[cite: 1]
-const db = getDatabase(app);[cite: 1]
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-const inventoryRef = ref(db, 'inventario');[cite: 1]
-const historyRef = ref(db, 'historial');[cite: 1]
-const cafeGranoRef = ref(db, 'cafeGrano');[cite: 1]
+const inventoryRef = ref(db, 'inventario');
+const historyRef = ref(db, 'historial');
+const cafeGranoRef = ref(db, 'cafeGrano');
 
-let inventario = [];[cite: 1]
-let historialMovimientos = [];[cite: 1]
-let cafeGranoData = { inicial: 1000, actual: 1000 };[cite: 1]
-let listaTraspasoActual = [];[cite: 1]
-let listaIngresoActual = [];[cite: 1]
-let listaBajaActual = [];[cite: 1]
-let listaTicketBarraActual = [];[cite: 1]
-let filtroBusquedaBarra = ''; // Filtro dinámico para la lupa de barra[cite: 1]
+let inventario = [];
+let historialMovimientos = [];
+let cafeGranoData = { inicial: 1000, actual: 1000 };
+let listaTraspasoActual = [];
+let listaIngresoActual = [];
+let listaBajaActual = [];
+let listaTicketBarraActual = [];
+let filtroBusquedaBarra = ''; // Filtro dinámico para la lupa de barra
 
-// Helper para formato de fecha único y estándar (DD/MM/YYYY)[cite: 1]
+// Helper para formato de fecha único y estándar (DD/MM/YYYY)
 function getFechaHoy() {
   const d = new Date();
   const dia = String(d.getDate()).padStart(2, '0');
@@ -41,7 +41,7 @@ function getFechaHoy() {
   return `${dia}/${mes}/${anio}`;
 }
 
-// FUNCIÓN DE ORDENAMIENTO: Leches primero, luego A-Z[cite: 1]
+// FUNCIÓN DE ORDENAMIENTO: Leches primero, luego A-Z
 function ordenarInventario(lista) {
   return [...lista].sort((a, b) => {
     const aEsLeche = a.nombre.toLowerCase().includes('leche');
@@ -54,7 +54,7 @@ function ordenarInventario(lista) {
   });
 }
 
-// Escuchar cambios de inventario en vivo[cite: 1]
+// Escuchar cambios de inventario en vivo
 onValue(inventoryRef, (snapshot) => {
   const data = snapshot.val();
   if (data) {
@@ -74,7 +74,7 @@ onValue(inventoryRef, (snapshot) => {
   renderTodo();
 });
 
-// Escuchar cambios de historial en vivo[cite: 1]
+// Escuchar cambios de historial en vivo
 onValue(historyRef, (snapshot) => {
   const data = snapshot.val();
   if (data) {
@@ -88,7 +88,7 @@ onValue(historyRef, (snapshot) => {
   renderTodo();
 });
 
-// Escuchar cambios de café en grano en vivo[cite: 1]
+// Escuchar cambios de café en grano en vivo
 onValue(cafeGranoRef, (snapshot) => {
   const data = snapshot.val();
   if (data) {
@@ -97,7 +97,7 @@ onValue(cafeGranoRef, (snapshot) => {
   renderControlCafe();
 });
 
-// --- GESTIÓN DE PERFILES Y SESIÓN ---[cite: 1]
+// --- GESTIÓN DE PERFILES Y SESIÓN (CORREGIDA Y ROBUSTA) ---
 
 function verificarSesion() {
   const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
@@ -120,25 +120,41 @@ function configurarModalLogin() {
 
   if (!selectUsuario || !btnIngresar) return;
 
+  // Estado inicial según selección por defecto
+  const esAdminInicial = selectUsuario.value.trim().toLowerCase() === 'administrador';
+  if (esAdminInicial) {
+    divPin?.classList.remove('hidden');
+  } else {
+    divPin?.classList.add('hidden');
+  }
+
   selectUsuario.addEventListener('change', (e) => {
-    if (e.target.value === 'Administrador') {
+    const val = e.target.value.trim().toLowerCase();
+    if (val === 'administrador') {
       divPin?.classList.remove('hidden');
     } else {
       divPin?.classList.add('hidden');
+      if (inputPin) inputPin.value = '';
     }
   });
 
   btnIngresar.addEventListener('click', () => {
-    const usuario = selectUsuario.value;
-    if (usuario === 'Administrador') {
-      if (inputPin.value !== ADMIN_PIN) {
-        alert('❌ PIN incorrecto');
-        inputPin.value = '';
-        inputPin.focus();
+    const usuarioSeleccionado = selectUsuario.value.trim();
+    const esAdmin = usuarioSeleccionado.toLowerCase() === 'administrador';
+
+    if (esAdmin) {
+      const pinIngresado = inputPin ? inputPin.value.trim() : '';
+      if (pinIngresado !== ADMIN_PIN) {
+        alert('❌ PIN incorrecto. Intenta nuevamente.');
+        if (inputPin) {
+          inputPin.value = '';
+          inputPin.focus();
+        }
         return;
       }
     }
-    sessionStorage.setItem('usuarioLogueado', usuario);
+
+    sessionStorage.setItem('usuarioLogueado', usuarioSeleccionado);
     if (inputPin) inputPin.value = '';
     verificarSesion();
     renderTodo();
@@ -149,19 +165,20 @@ function aplicarPermisosPerfil(nombreUsuario) {
   const tabNuevoProd = document.getElementById('tab-nuevo_prod');
   const thAdminAcciones = document.querySelectorAll('.thAdminAcciones');
   const panelAdminCafe = document.getElementById('panelAdminAgregarCafe');
+  const esAdmin = nombreUsuario.trim().toLowerCase() === 'administrador';
 
   if (tabNuevoProd) {
     const labelTab = document.querySelector('label[for="tab-nuevo_prod"]');
-    if (labelTab) labelTab.style.display = (nombreUsuario === 'Administrador') ? '' : 'none';
+    if (labelTab) labelTab.style.display = esAdmin ? '' : 'none';
   }
 
   thAdminAcciones.forEach(el => {
-    if (nombreUsuario === 'Administrador') el.classList.remove('hidden');
+    if (esAdmin) el.classList.remove('hidden');
     else el.classList.add('hidden');
   });
 
   if (panelAdminCafe) {
-    if (nombreUsuario === 'Administrador') panelAdminCafe.classList.remove('hidden');
+    if (esAdmin) panelAdminCafe.classList.remove('hidden');
     else panelAdminCafe.classList.add('hidden');
   }
 
@@ -178,7 +195,7 @@ function actualizarBadgeUsuario(nombre) {
       <span class="text-[11px] font-bold text-slate-200 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">
         👤 ${nombre}
       </span>
-      <button onclick="cerrarSesion()" title="Cerrar sesión" class="text-xs bg-rose-600/80 hover:bg-rose-600 text-white font-bold p-1 rounded-lg transition">
+      <button onclick="cerrarSesion()" title="Cerrar sesión" class="text-xs bg-rose-600/85 hover:bg-rose-600 text-white font-bold p-1 rounded-lg transition">
         🚪
       </button>
     </div>
@@ -197,6 +214,7 @@ window.cerrarSesion = function() {
     listaBajaActual = [];
     listaTicketBarraActual = [];
     verificarSesion();
+    window.location.reload(); // Recarga limpia para reiniciar estados del modal
   }
 };
 
@@ -208,7 +226,7 @@ function irASeccion(tabId) {
   }
 }
 
-// --- CONTROL DE CAFÉ EN GRANO ---[cite: 1]
+// --- CONTROL DE CAFÉ EN GRANO ---
 function renderControlCafe() {
   const elInicial = document.getElementById('cafeMontoInicial');
   const elReal = document.getElementById('cafeRestanteReal');
@@ -217,7 +235,7 @@ function renderControlCafe() {
 }
 
 window.agregarCafeGranoAdmin = function() {
-  if (sessionStorage.getItem('usuarioLogueado') !== 'Administrador') return;
+  if (sessionStorage.getItem('usuarioLogueado')?.toLowerCase() !== 'administrador') return;
   const input = document.getElementById('inputAdminCafeGramos');
   const gramos = parseFloat(input?.value);
   if (isNaN(gramos) || gramos <= 0) {
@@ -232,15 +250,15 @@ window.agregarCafeGranoAdmin = function() {
   alert(`✅ Se agregaron ${gramos}g al control de café en grano.`);
 };
 
-// --- GESTIÓN DE PRODUCTOS ---[cite: 1]
+// --- GESTIÓN DE PRODUCTOS ---
 function guardarProductoNuevo() {
-  if (sessionStorage.getItem('usuarioLogueado') !== 'Administrador') return;
+  if (sessionStorage.getItem('usuarioLogueado')?.toLowerCase() !== 'administrador') return;
 
   const nombreInput = document.getElementById('prodNombre');
   const tipoInput = document.getElementById('prodTipo');
   const stockDepInput = document.getElementById('prodStockDep');
   const stockCafInput = document.getElementById('prodStockCaf');
-  const gramosCafeInput = document.getElementById('prodGramosCafe'); // Campo opcional o dinámico para gramos de café
+  const gramosCafeInput = document.getElementById('prodGramosCafe');
 
   const nombre = nombreInput?.value.trim();
   const tipo = tipoInput ? tipoInput.value : 'producto';
@@ -256,9 +274,9 @@ function guardarProductoNuevo() {
   const nuevoProd = {
     id: Date.now(),
     nombre: nombre,
-    tipo: tipo, // 'producto', 'insumo', 'cafe'[cite: 1]
+    tipo: tipo, 
     stockDeposito: stockDep,
-    stockCafeteria: (tipo === 'insumo' || tipo === 'cafe') ? 0 : stockCaf, // Café no usa stock de cafetería tradicional (es ilimitado)[cite: 1]
+    stockCafeteria: (tipo === 'insumo' || tipo === 'cafe') ? 0 : stockCaf,
     precio: 0,
     gramosPorTaza: gramosPorTaza
   };
@@ -276,7 +294,7 @@ function guardarProductoNuevo() {
 }
 
 window.eliminarProducto = function(id, nombre) {
-  if (sessionStorage.getItem('usuarioLogueado') !== 'Administrador') return;
+  if (sessionStorage.getItem('usuarioLogueado')?.toLowerCase() !== 'administrador') return;
 
   if (confirm(`🗑️ ¿Eliminar permanentemente "${nombre}" del inventario?`)) {
     inventario = inventario.filter(p => p.id !== id);
@@ -284,7 +302,7 @@ window.eliminarProducto = function(id, nombre) {
   }
 };
 
-// --- REGISTRO DE MOVIMIENTOS ---[cite: 1]
+// --- REGISTRO DE MOVIMIENTOS ---
 function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   const usuario = sessionStorage.getItem('usuarioLogueado') || 'Usuario';
   const ahora = new Date();
@@ -304,7 +322,7 @@ function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   push(historyRef, nuevoRegistro);
 }
 
-// --- TRASPASOS ---[cite: 1]
+// --- TRASPASOS ---
 function agregarATraspaso() {
   const select = document.getElementById('selectProductoTraspaso');
   const cantInput = document.getElementById('cantTraspaso');
@@ -369,12 +387,11 @@ function confirmarTraspasoMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- VENTAS DE BARRA (BOTONES, BUSCADOR LUPA Y TICKETS) ---[cite: 1]
+// --- VENTAS DE BARRA ---
 function renderBotonesBarra() {
   const grid = document.getElementById('gridBotonesBarra');
   if (!grid) return;
 
-  // Asegurar la existencia del buscador (lupa) encima del grid si no ha sido creado
   let containerPadre = grid.parentElement;
   let buscadorInput = document.getElementById('inputBuscadorBarra');
   if (!buscadorInput && containerPadre) {
@@ -393,7 +410,6 @@ function renderBotonesBarra() {
   }
 
   grid.innerHTML = '';
-  // Filtrar productos visibles (excluyendo insumos, incluyendo café y productos normales)[cite: 1]
   let productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
 
   if (filtroBusquedaBarra) {
@@ -409,7 +425,6 @@ function renderBotonesBarra() {
     const esCafe = prod.tipo === 'cafe';
     const btn = document.createElement('button');
     btn.type = 'button';
-    // Cuadros más compactos y sin el texto "+ agregar"[cite: 1]
     btn.className = 'bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded-xl text-left flex flex-col justify-between transition active:scale-95 shadow';
     
     let infoStockHtml = esCafe 
@@ -434,7 +449,6 @@ function agregarItemTicketBarra(idProd) {
   const existente = listaTicketBarraActual.find(it => it.id === idProd);
   const cantActual = existente ? existente.cantidad : 0;
 
-  // Si no es café, validamos el stock físico de cafetería; si es café, es ilimitado[cite: 1]
   if (prod.tipo !== 'cafe' && (cantActual + 1 > prod.stockCafeteria)) {
     alert(`Stock insuficiente en Cafetería para "${prod.nombre}".`);
     return;
@@ -496,7 +510,6 @@ function renderTicketActualBarra() {
 function emitirTicketVenta() {
   if (listaTicketBarraActual.length === 0) return;
 
-  // Validar stock solo para productos normales (el café es ilimitado)[cite: 1]
   for (let item of listaTicketBarraActual) {
     if (item.tipo !== 'cafe') {
       const prod = inventario.find(p => p.id === item.id);
@@ -507,14 +520,12 @@ function emitirTicketVenta() {
     }
   }
 
-  // Descontar stock correspondiente de productos normales y acumular gramos de café[cite: 1]
   let gramosConsumidosTotal = 0;
 
   listaTicketBarraActual.forEach(item => {
     const prod = inventario.find(p => p.id === item.id);
     if (prod) {
       if (prod.tipo === 'cafe') {
-        // Cálculo automático de gramos por cada café vendido (ej: 2 Americanos x 18g = 36g)[cite: 1]
         const gramosItem = item.cantidad * (prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF);
         gramosConsumidosTotal += gramosItem;
       } else {
@@ -523,7 +534,6 @@ function emitirTicketVenta() {
     }
   });
 
-  // Restar en tiempo real del medidor principal de Café en Grano[cite: 1]
   if (gramosConsumidosTotal > 0) {
     cafeGranoData.actual = Math.max(0, cafeGranoData.actual - gramosConsumidosTotal);
     set(cafeGranoRef, cafeGranoData);
@@ -539,7 +549,7 @@ function emitirTicketVenta() {
   irASeccion('tab-tickets');
 }
 
-// --- RECIBOS / TICKETS ---[cite: 1]
+// --- RECIBOS / TICKETS ---
 function renderRecibosTickets() {
   const contenedor = document.getElementById('contenedorRecibosTickets');
   const empty = document.getElementById('emptyRecibos');
@@ -576,7 +586,7 @@ function renderRecibosTickets() {
   });
 }
 
-// --- INGRESOS ---[cite: 1]
+// --- INGRESOS ---
 function agregarAIngreso() {
   const selectDestino = document.getElementById('selectDestinoIngreso');
   const selectProd = document.getElementById('selectProductoIngreso');
@@ -642,7 +652,7 @@ function confirmarIngresoStockMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- BAJAS Y CORTESÍAS ---[cite: 1]
+// --- BAJAS Y CORTESÍAS ---
 function agregarABaja() {
   const selectUbicacion = document.getElementById('selectUbicacionBaja');
   const selectProd = document.getElementById('selectProductoBaja');
@@ -720,7 +730,7 @@ function confirmarBajasMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- INSUMOS ---[cite: 1]
+// --- INSUMOS ---
 window.pasarInsumo = function(idInsumo) {
   const prod = inventario.find(p => p.id === idInsumo);
   if (!prod) return;
@@ -740,13 +750,14 @@ window.pasarInsumo = function(idInsumo) {
   alert(`✅ Se pasaron ${cantidad} de "${prod.nombre}".`);
 };
 
-// --- MANTENIMIENTO ADMIN ---[cite: 1]
+// --- MANTENIMIENTO ADMIN ---
 function renderPanelMantenimiento(nombreUsuario) {
   let panel = document.getElementById('panelMantenimientoAdmin');
   const tabContent = document.getElementById('sec-nuevo_prod');
+  const esAdmin = nombreUsuario.trim().toLowerCase() === 'administrador';
   if (!tabContent) return;
 
-  if (nombreUsuario !== 'Administrador') {
+  if (!esAdmin) {
     if (panel) panel.remove();
     return;
   }
@@ -801,7 +812,7 @@ window.reiniciarStockTodo = function() {
   }
 };
 
-// --- RENDER GENERAL ---[cite: 1]
+// --- RENDER GENERAL ---
 function renderTodo() {
   renderInventario();
   renderInsumos();
@@ -820,7 +831,7 @@ function renderTodo() {
 function renderInventario() {
   const productosVisibles = inventario.filter(p => p.tipo !== 'insumo');
   const ordenados = ordenarInventario(productosVisibles);
-  const esAdmin = sessionStorage.getItem('usuarioLogueado') === 'Administrador';
+  const esAdmin = sessionStorage.getItem('usuarioLogueado')?.trim().toLowerCase() === 'administrador';
 
   const tbodyCaf = document.getElementById('tablaCafeteria');
   if (tbodyCaf) {
@@ -905,7 +916,7 @@ function renderInsumos() {
   if (!tbodyIns) return;
 
   const insumos = ordenarInventario(inventario.filter(p => p.tipo === 'insumo'));
-  const esAdmin = sessionStorage.getItem('usuarioLogueado') === 'Administrador';
+  const esAdmin = sessionStorage.getItem('usuarioLogueado')?.trim().toLowerCase() === 'administrador';
 
   tbodyIns.innerHTML = '';
   if (insumos.length === 0) {
