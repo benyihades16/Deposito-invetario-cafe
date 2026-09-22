@@ -14,7 +14,7 @@ const firebaseConfig = {
 };
 
 const ADMIN_PIN = "1234";
-const GRAMOS_POR_CAFE_DEF = 18;
+const GRAMOS_POR_CAFE_DEF = 18; // 18g estándar por defecto
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
@@ -31,8 +31,9 @@ let listaIngresoActual = [];
 let listaBajaActual = [];
 let listaTicketBarraActual = [];
 let filtroBusquedaBarra = ''; 
-let counterMovimiento = 0;
+let counterMovimiento = 0; // Para garantizar IDs únicos en movimientos simultáneos
 
+// Helper para formato de fecha único y estándar (DD/MM/YYYY)
 function getFechaHoy() {
   const d = new Date();
   const dia = String(d.getDate()).padStart(2, '0');
@@ -41,6 +42,7 @@ function getFechaHoy() {
   return `${dia}/${mes}/${anio}`;
 }
 
+// FUNCIÓN DE ORDENAMIENTO: Leches primero, luego A-Z
 function ordenarInventario(lista) {
   return [...lista].sort((a, b) => {
     const aEsLeche = a.nombre.toLowerCase().includes('leche');
@@ -53,7 +55,7 @@ function ordenarInventario(lista) {
   });
 }
 
-// Sincronización en tiempo real con Firebase
+// Escuchar cambios de inventario en vivo
 onValue(inventoryRef, (snapshot) => {
   const data = snapshot.val();
   if (data) {
@@ -73,6 +75,7 @@ onValue(inventoryRef, (snapshot) => {
   renderTodo();
 });
 
+// Escuchar cambios de historial en vivo
 onValue(historyRef, (snapshot) => {
   const data = snapshot.val();
   if (data) {
@@ -86,6 +89,7 @@ onValue(historyRef, (snapshot) => {
   renderTodo();
 });
 
+// Escuchar cambios de café en grano en vivo
 onValue(cafeGranoRef, (snapshot) => {
   const data = snapshot.val();
   if (data) {
@@ -94,7 +98,8 @@ onValue(cafeGranoRef, (snapshot) => {
   renderControlCafe();
 });
 
-// --- SESIÓN Y PERFILES ---
+// --- GESTIÓN DE PERFILES Y SESIÓN ---
+
 function verificarSesion() {
   const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
   const modalLogin = document.getElementById('loginModal');
@@ -117,8 +122,11 @@ function configurarModalLogin() {
   if (!selectUsuario || !btnIngresar) return;
 
   const esAdminInicial = selectUsuario.value.trim().toLowerCase() === 'administrador';
-  if (esAdminInicial) divPin?.classList.remove('hidden');
-  else divPin?.classList.add('hidden');
+  if (esAdminInicial) {
+    divPin?.classList.remove('hidden');
+  } else {
+    divPin?.classList.add('hidden');
+  }
 
   selectUsuario.addEventListener('change', (e) => {
     const val = e.target.value.trim().toLowerCase();
@@ -137,8 +145,11 @@ function configurarModalLogin() {
     if (esAdmin) {
       const pinIngresado = inputPin ? inputPin.value.trim() : '';
       if (pinIngresado !== ADMIN_PIN) {
-        alert('❌ PIN incorrecto.');
-        if (inputPin) { inputPin.value = ''; inputPin.focus(); }
+        alert('❌ PIN incorrecto. Intenta nuevamente.');
+        if (inputPin) {
+          inputPin.value = '';
+          inputPin.focus();
+        }
         return;
       }
     }
@@ -181,16 +192,28 @@ function actualizarBadgeUsuario(nombre) {
 
   container.innerHTML = `
     <div class="flex items-center gap-2">
-      <span class="text-[11px] font-bold text-slate-200 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">👤 ${nombre}</span>
-      <button onclick="cerrarSesion()" title="Cerrar sesión" class="text-xs bg-rose-600 hover:bg-rose-700 text-white font-bold p-1 rounded-lg transition">🚪</button>
+      <span class="text-[11px] font-bold text-slate-200 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">
+        👤 ${nombre}
+      </span>
+      <button onclick="cerrarSesion()" title="Cerrar sesión" class="text-xs bg-rose-600/85 hover:bg-rose-600 text-white font-bold p-1 rounded-lg transition">
+        🚪
+      </button>
     </div>
   `;
-  if (badgeBarra) badgeBarra.textContent = `Operador: ${nombre}`;
+
+  if (badgeBarra) {
+    badgeBarra.textContent = `Operador: ${nombre}`;
+  }
 }
 
 window.cerrarSesion = function() {
   if (confirm("¿Deseas cerrar la sesión activa?")) {
     sessionStorage.removeItem('usuarioLogueado');
+    listaTraspasoActual = [];
+    listaIngresoActual = [];
+    listaBajaActual = [];
+    listaTicketBarraActual = [];
+    verificarSesion();
     window.location.reload();
   }
 };
@@ -203,7 +226,7 @@ function irASeccion(tabId) {
   }
 }
 
-// --- CAFÉ EN GRANO ---
+// --- CONTROL DE CAFÉ EN GRANO ---
 function renderControlCafe() {
   const elInicial = document.getElementById('cafeMontoInicial');
   const elReal = document.getElementById('cafeRestanteReal');
@@ -216,17 +239,18 @@ window.agregarCafeGranoAdmin = function() {
   const input = document.getElementById('inputAdminCafeGramos');
   const gramos = parseFloat(input?.value);
   if (isNaN(gramos) || gramos <= 0) {
-    alert("Ingresa una cantidad válida.");
+    alert("Ingresa una cantidad válida en gramos.");
     return;
   }
+
   cafeGranoData.inicial += gramos;
   cafeGranoData.actual += gramos;
   set(cafeGranoRef, cafeGranoData);
   input.value = '';
-  alert(`✅ Se agregaron ${gramos}g al control de café.`);
+  alert(`✅ Se agregaron ${gramos}g al control de café en grano.`);
 };
 
-// --- GESTIÓN DE PRODUCTOS ---
+// --- GESTIÓN DE PRODUCTOS Y GRAMAJE DINÁMICO ---
 function configurarSelectorTipoProducto() {
   const tipoInput = document.getElementById('prodTipo');
   if (tipoInput) {
@@ -245,14 +269,18 @@ function configurarSelectorTipoProducto() {
       contenedorGramos.innerHTML = `
         <label class="text-xs font-semibold text-slate-300">Gramos por Taza (Personalizado):</label>
         <input type="number" id="prodGramosCafe" class="bg-slate-950 border border-slate-700 text-xs text-white rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500" value="18" min="1" step="0.5" />
-        <span class="text-[10px] text-slate-500">Gramaje exacto por preparación (ej. 14g, 18g, 20g, 22g)</span>
+        <span class="text-[10px] text-slate-500">Permite configurar gramos exactos (ej. 14g, 18g, 20g, 22g, etc.)</span>
       `;
       tipoInput.parentElement.insertAdjacentElement('afterend', contenedorGramos);
     }
 
     const actualizarVisibilidadGramos = () => {
-      if (tipoInput.value === 'cafe') contenedorGramos?.classList.remove('hidden');
-      else contenedorGramos?.classList.add('hidden');
+      const val = tipoInput.value;
+      if (val === 'cafe') {
+        contenedorGramos?.classList.remove('hidden');
+      } else {
+        contenedorGramos?.classList.add('hidden');
+      }
     };
 
     tipoInput.addEventListener('change', actualizarVisibilidadGramos);
@@ -283,7 +311,7 @@ function guardarProductoNuevo() {
   const nuevoProd = {
     id: Date.now(),
     nombre: nombre,
-    tipo: tipo,
+    tipo: tipo, 
     stockDeposito: tipo === 'cafe' ? 0 : stockDep,
     stockCafeteria: tipo === 'cafe' ? 0 : stockCaf,
     precio: 0,
@@ -299,18 +327,19 @@ function guardarProductoNuevo() {
   if (gramosCafeInput) gramosCafeInput.value = GRAMOS_POR_CAFE_DEF;
 
   alert(`✅ "${nombre}" agregado correctamente.`);
-  irASeccion(tipo === 'insumo' ? 'tab-insumos' : (tipo === 'cafe' ? 'tab-stock' : 'tab-stock'));
+  irASeccion(tipo === 'insumo' ? 'tab-insumos' : 'tab-stock');
 }
 
 window.eliminarProducto = function(id, nombre) {
   if (sessionStorage.getItem('usuarioLogueado')?.toLowerCase() !== 'administrador') return;
-  if (confirm(`🗑️ ¿Eliminar permanentemente "${nombre}"?`)) {
+
+  if (confirm(`🗑️ ¿Eliminar permanentemente "${nombre}" del inventario?`)) {
     inventario = inventario.filter(p => p.id !== id);
     set(inventoryRef, inventario);
   }
 };
 
-// --- REGISTRO DE MOVIMIENTOS ---
+// --- REGISTRO ROBUSTO DE MOVIMIENTOS ---
 function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   const usuario = sessionStorage.getItem('usuarioLogueado') || 'Usuario';
   const ahora = new Date();
@@ -333,7 +362,8 @@ function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   };
 
   push(historyRef, nuevoRegistro).catch(err => {
-    console.error("Error al registrar movimiento:", err);
+    console.error("Error al registrar movimiento en Firebase:", err);
+    alert("❌ Error al guardar el movimiento en la base de datos.");
   });
 }
 
@@ -341,23 +371,28 @@ function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
 function agregarATraspaso() {
   const select = document.getElementById('selectProductoTraspaso');
   const cantInput = document.getElementById('cantTraspaso');
+
   const idProd = parseInt(select?.value);
   const cantidad = parseInt(cantInput?.value) || 1;
 
   if (!idProd || cantidad <= 0) return;
+
   const prod = inventario.find(p => p.id === idProd);
   if (!prod) return;
 
-  const existente = listaTraspasoActual.find(it => it.id === idProd);
-  const cantActual = existente ? existente.cantidad : 0;
+  const existenteEnLista = listaTraspasoActual.find(it => it.id === idProd);
+  const cantidadYaAgregada = existenteEnLista ? existenteEnLista.cantidad : 0;
 
-  if ((cantActual + cantidad) > prod.stockDeposito) {
-    alert(`Stock insuficiente en Depósito de "${prod.nombre}".`);
+  if ((cantidadYaAgregada + cantidad) > prod.stockDeposito) {
+    alert(`Stock insuficiente en Depósito de "${prod.nombre}". Solo quedan ${prod.stockDeposito} unids.`);
     return;
   }
 
-  if (existente) existente.cantidad += cantidad;
-  else listaTraspasoActual.push({ id: prod.id, nombre: prod.nombre, cantidad: cantidad });
+  if (existenteEnLista) {
+    existenteEnLista.cantidad += cantidad;
+  } else {
+    listaTraspasoActual.push({ id: prod.id, nombre: prod.nombre, cantidad: cantidad });
+  }
 
   if (cantInput) cantInput.value = 1;
   renderListaTraspaso();
@@ -371,18 +406,27 @@ window.quitarDeTraspaso = function(idx) {
 function confirmarTraspasoMultiple() {
   if (listaTraspasoActual.length === 0) return;
 
-  listaTraspasoActual.forEach(item => {
+  for (let item of listaTraspasoActual) {
     const prod = inventario.find(p => p.id === item.id);
+    if (!prod || prod.stockDeposito < item.cantidad) {
+      alert(`Stock insuficiente para "${item.nombre}".`);
+      return;
+    }
+  }
+
+  listaTraspasoActual.forEach(itemTraspaso => {
+    const prod = inventario.find(p => p.id === itemTraspaso.id);
     if (prod) {
-      prod.stockDeposito = Math.max(0, prod.stockDeposito - item.cantidad);
+      prod.stockDeposito = Math.max(0, prod.stockDeposito - itemTraspaso.cantidad);
       if (prod.tipo !== 'insumo' && prod.tipo !== 'cafe') {
-        prod.stockCafeteria += item.cantidad;
+        prod.stockCafeteria += itemTraspaso.cantidad;
       }
     }
   });
 
   set(inventoryRef, inventario);
   registrarMovimientoEnTurno('TRASPASO', [...listaTraspasoActual], 'Depósito ➔ Cafetería');
+
   listaTraspasoActual = [];
   alert(`✅ Traspaso registrado correctamente.`);
   irASeccion('tab-stock');
@@ -403,6 +447,7 @@ function renderBotonesBarra() {
       <input type="text" id="inputBuscadorBarra" placeholder="Buscar producto en barra..." class="bg-transparent text-xs text-white focus:outline-none w-full" value="${filtroBusquedaBarra}" />
     `;
     containerPadre.insertBefore(wrapper, grid);
+    
     document.getElementById('inputBuscadorBarra').addEventListener('input', (e) => {
       filtroBusquedaBarra = e.target.value.toLowerCase();
       renderBotonesBarra();
@@ -411,6 +456,7 @@ function renderBotonesBarra() {
 
   grid.innerHTML = '';
   let productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
+
   if (filtroBusquedaBarra) {
     productosVisibles = productosVisibles.filter(p => p.nombre.toLowerCase().includes(filtroBusquedaBarra));
   }
@@ -449,12 +495,15 @@ function agregarItemTicketBarra(idProd) {
   const cantActual = existente ? existente.cantidad : 0;
 
   if (prod.tipo !== 'cafe' && (cantActual + 1 > prod.stockCafeteria)) {
-    alert(`Stock insuficiente en Cafetería.`);
+    alert(`Stock insuficiente en Cafetería para "${prod.nombre}".`);
     return;
   }
 
-  if (existente) existente.cantidad += 1;
-  else listaTicketBarraActual.push({ id: prod.id, nombre: prod.nombre, cantidad: 1, precio: prod.precio || 0, tipo: prod.tipo, gramosPorTaza: prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF });
+  if (existente) {
+    existente.cantidad += 1;
+  } else {
+    listaTicketBarraActual.push({ id: prod.id, nombre: prod.nombre, cantidad: 1, precio: prod.precio || 0, tipo: prod.tipo, gramosPorTaza: prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF });
+  }
 
   renderTicketActualBarra();
 }
@@ -506,12 +555,24 @@ function renderTicketActualBarra() {
 function emitirTicketVenta() {
   if (listaTicketBarraActual.length === 0) return;
 
+  for (let item of listaTicketBarraActual) {
+    if (item.tipo !== 'cafe') {
+      const prod = inventario.find(p => p.id === item.id);
+      if (!prod || prod.stockCafeteria < item.cantidad) {
+        alert(`Stock insuficiente para "${item.nombre}" en cafetería.`);
+        return;
+      }
+    }
+  }
+
   let gramosConsumidosTotal = 0;
+
   listaTicketBarraActual.forEach(item => {
     const prod = inventario.find(p => p.id === item.id);
     if (prod) {
       if (prod.tipo === 'cafe') {
-        gramosConsumidosTotal += item.cantidad * (prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF);
+        const gramosItem = item.cantidad * (prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF);
+        gramosConsumidosTotal += gramosItem;
       } else {
         prod.stockCafeteria = Math.max(0, prod.stockCafeteria - item.cantidad);
       }
@@ -529,11 +590,11 @@ function emitirTicketVenta() {
   listaTicketBarraActual = [];
   renderTicketActualBarra();
   renderBotonesBarra();
-  alert("✅ Ticket emitido correctamente.");
+  alert("✅ Ticket emitido y stock actualizado correctamente.");
   irASeccion('tab-tickets');
 }
 
-// --- RECIBOS ---
+// --- RECIBOS / TICKETS ---
 function renderRecibosTickets() {
   const contenedor = document.getElementById('contenedorRecibosTickets');
   const empty = document.getElementById('emptyRecibos');
@@ -564,7 +625,7 @@ function renderRecibosTickets() {
         <span class="text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded font-semibold">👤 ${reg.usuario}</span>
       </div>
       <div class="space-y-1 bg-white p-2.5 rounded-lg border border-slate-200">${itemsHTML}</div>
-      <div class="text-[10px] text-slate-500 text-right font-mono">${reg.fecha}</div>
+      <div class="text-[10px] text-slate-500 text-right font-mono">${reg.fecha} | ${reg.origen || ''}</div>
     `;
     contenedor.appendChild(card);
   });
@@ -581,12 +642,14 @@ function agregarAIngreso() {
   const destino = selectDestino?.value || 'deposito';
 
   if (!idProd || cantidad <= 0) return;
+
   const prod = inventario.find(p => p.id === idProd);
   if (!prod) return;
 
   const existente = listaIngresoActual.find(it => it.id === idProd && it.destino === destino);
-  if (existente) existente.cantidad += cantidad;
-  else {
+  if (existente) {
+    existente.cantidad += cantidad;
+  } else {
     listaIngresoActual.push({
       id: prod.id,
       nombre: prod.nombre,
@@ -647,12 +710,20 @@ function agregarABaja() {
   const motivo = motivoInput?.value || 'Cortesía';
 
   if (!idProd || cantidad <= 0) return;
+
   const prod = inventario.find(p => p.id === idProd);
   if (!prod) return;
 
+  const stockDisponible = ubicacion === 'cafeteria' ? prod.stockCafeteria : prod.stockDeposito;
+  if (prod.tipo !== 'cafe' && cantidad > stockDisponible) {
+    alert(`Stock insuficiente. Stock actual: ${stockDisponible}`);
+    return;
+  }
+
   const existente = listaBajaActual.find(it => it.id === idProd && it.ubicacion === ubicacion && it.motivo === motivo);
-  if (existente) existente.cantidad += cantidad;
-  else {
+  if (existente) {
+    existente.cantidad += cantidad;
+  } else {
     listaBajaActual.push({
       id: prod.id,
       nombre: prod.nombre,
@@ -678,8 +749,11 @@ function confirmarBajasMultiple() {
   listaBajaActual.forEach(item => {
     const prod = inventario.find(p => p.id === item.id);
     if (prod && prod.tipo !== 'cafe') {
-      if (item.ubicacion === 'cafeteria') prod.stockCafeteria = Math.max(0, prod.stockCafeteria - item.cantidad);
-      else prod.stockDeposito = Math.max(0, prod.stockDeposito - item.cantidad);
+      if (item.ubicacion === 'cafeteria') {
+        prod.stockCafeteria = Math.max(0, prod.stockCafeteria - item.cantidad);
+      } else {
+        prod.stockDeposito = Math.max(0, prod.stockDeposito - item.cantidad);
+      }
     }
   });
 
@@ -696,7 +770,7 @@ function confirmarBajasMultiple() {
   });
 
   listaBajaActual = [];
-  alert(`✅ Salidas registradas.`);
+  alert(`✅ Salidas registradas correctamente.`);
   renderListaBaja();
   irASeccion('tab-stock');
 }
@@ -706,19 +780,81 @@ window.pasarInsumo = function(idInsumo) {
   const prod = inventario.find(p => p.id === idInsumo);
   if (!prod) return;
 
-  const cantidadStr = prompt(`¿Cuántas unidades deseas pasar desde el depósito? (Stock: ${prod.stockDeposito})`, "1");
+  const cantidadStr = prompt(`¿Cuántas unidades deseas pasar desde el depósito? (Stock actual: ${prod.stockDeposito})`, "1");
   if (!cantidadStr) return;
   const cantidad = parseInt(cantidadStr);
 
   if (isNaN(cantidad) || cantidad <= 0 || cantidad > prod.stockDeposito) {
-    alert("Cantidad inválida.");
+    alert("Cantidad inválida o insuficiente.");
     return;
   }
 
   prod.stockDeposito -= cantidad;
   set(inventoryRef, inventario);
   registrarMovimientoEnTurno('TRASPASO_INSUMO', [{ id: prod.id, nombre: prod.nombre, cantidad: cantidad }], 'Depósito Insumos');
-  alert(`✅ Traspaso de insumo realizado.`);
+  alert(`✅ Se pasaron ${cantidad} de "${prod.nombre}".`);
+};
+
+// --- MANTENIMIENTO ADMIN ---
+function renderPanelMantenimiento(nombreUsuario) {
+  let panel = document.getElementById('panelMantenimientoAdmin');
+  const tabContent = document.getElementById('sec-nuevo_prod');
+  const esAdmin = nombreUsuario.trim().toLowerCase() === 'administrador';
+  if (!tabContent) return;
+
+  if (!esAdmin) {
+    if (panel) panel.remove();
+    return;
+  }
+
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'panelMantenimientoAdmin';
+    panel.className = 'bg-slate-900 border border-slate-800 rounded-2xl p-4 mt-4 text-white space-y-3 shadow-xl';
+    tabContent.appendChild(panel);
+  }
+
+  panel.innerHTML = `
+    <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
+      <span class="text-lg">⚙️</span>
+      <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Mantenimiento de Datos</h3>
+    </div>
+    <div class="space-y-2 text-xs">
+      <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex flex-col gap-2">
+        <label class="font-semibold text-slate-300">Borrar Historial:</label>
+        <div class="flex gap-2">
+          <select id="selectBorradoTiempo" class="bg-slate-900 border border-slate-700 text-xs text-white rounded-lg px-2 py-1 flex-1">
+            <option value="todo">⚠️ BORRAR TODO EL HISTORIAL</option>
+          </select>
+          <button onclick="ejecutarBorradoHistorial()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1 rounded-lg transition">Ejecutar</button>
+        </div>
+      </div>
+      <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+        <span class="font-semibold text-slate-300">Reiniciar Todo el Stock a 0</span>
+        <button onclick="reiniciarStockTodo()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1 rounded-lg transition">Reiniciar</button>
+      </div>
+    </div>
+  `;
+}
+
+window.ejecutarBorradoHistorial = function() {
+  if (confirm("⚠️ ¿Confirmas borrar TODO el historial permanentemente?")) {
+    remove(historyRef).then(() => {
+      historialMovimientos = [];
+      renderTodo();
+      alert("✅ Historial borrado por completo.");
+    });
+  }
+};
+
+window.reiniciarStockTodo = function() {
+  if (confirm("⚠️ ¿Poner en 0 el stock de Depósito y Cafetería para todos los ítems?")) {
+    inventario.forEach(p => { if (p.tipo !== 'cafe') { p.stockDeposito = 0; p.stockCafeteria = 0; } });
+    set(inventoryRef, inventario).then(() => {
+      renderTodo();
+      alert("✅ Stock reiniciado a 0.");
+    });
+  }
 };
 
 // --- RENDER GENERAL ---
@@ -742,7 +878,6 @@ function renderInventario() {
   const ordenados = ordenarInventario(productosVisibles);
   const esAdmin = sessionStorage.getItem('usuarioLogueado')?.trim().toLowerCase() === 'administrador';
 
-  // Tabla Cafetería Stock
   const tbodyCaf = document.getElementById('tablaCafeteria');
   if (tbodyCaf) {
     tbodyCaf.innerHTML = '';
@@ -758,6 +893,7 @@ function renderInventario() {
               if (m.tipo === 'VENTA_BARRA' || m.tipo.includes('VENTA')) ventasHoy += it.cantidad;
               else if (m.tipo === 'TRASPASO') entradasHoy += it.cantidad;
               else if (m.tipo === 'INGRESO' && m.origen?.includes('Cafetería')) entradasHoy += it.cantidad;
+              else if (m.tipo === 'BAJA_CORTESIA' && m.origen?.includes('Cafetería')) ventasHoy += it.cantidad;
             }
           });
         }
@@ -778,11 +914,10 @@ function renderInventario() {
     });
   }
 
-  // Tabla Depósito Stock (Incluye también la gestión visual y borrado de cafés creados)
   const tbodyDep = document.getElementById('tablaDeposito');
   if (tbodyDep) {
     tbodyDep.innerHTML = '';
-    const depositoItems = inventario.filter(p => p.tipo !== 'insumo'); 
+    const depositoItems = inventario.filter(p => p.tipo !== 'insumo');
     ordenarInventario(depositoItems).forEach(prod => {
       const esCafe = prod.tipo === 'cafe';
       const tr = document.createElement('tr');
@@ -799,7 +934,6 @@ function renderInventario() {
     });
   }
 
-  // Tabla Total
   const tbodyTot = document.getElementById('tablaTotal');
   if (tbodyTot) {
     tbodyTot.innerHTML = '';
@@ -816,6 +950,15 @@ function renderInventario() {
       `;
       tbodyTot.appendChild(tr);
     });
+  }
+
+  const elTotalProd = document.getElementById('statTotalProductos');
+  if (elTotalProd) elTotalProd.textContent = inventario.filter(p => p.tipo !== 'insumo' && p.tipo !== 'cafe').length;
+
+  const elTotalPases = document.getElementById('statTotalPases');
+  if (elTotalPases) {
+    const hoyStr = getFechaHoy();
+    elTotalPases.textContent = historialMovimientos.filter(m => m.fechaCorta === hoyStr && (m.tipo.includes('TRASPASO') || m.tipo.includes('INGRESO') || m.tipo.includes('BAJA'))).length;
   }
 }
 
@@ -886,17 +1029,23 @@ function renderSelectores() {
 function renderListaTraspaso() {
   const lista = document.getElementById('listaTraspasoActual');
   const btnConf = document.getElementById('btnConfirmarTraspaso');
+  const resCount = document.getElementById('resumenTraspasoCount');
+
   if (!lista) return;
   lista.innerHTML = '';
 
   if (listaTraspasoActual.length === 0) {
     lista.innerHTML = `<p class="text-xs text-slate-500 italic py-2">Ningún producto agregado aún.</p>`;
     if (btnConf) btnConf.disabled = true;
+    if (resCount) resCount.textContent = '0 ítems';
     return;
   }
 
   if (btnConf) btnConf.disabled = false;
+  let totalUnidades = 0;
+
   listaTraspasoActual.forEach((item, idx) => {
+    totalUnidades += item.cantidad;
     const div = document.createElement('div');
     div.className = 'flex justify-between items-center bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs';
     div.innerHTML = `
@@ -908,22 +1057,30 @@ function renderListaTraspaso() {
     `;
     lista.appendChild(div);
   });
+
+  if (resCount) resCount.textContent = `${listaTraspasoActual.length} tipo(s) | Total: ${totalUnidades}`;
 }
 
 function renderListaIngreso() {
   const lista = document.getElementById('listaIngresoActual');
   const btnConf = document.getElementById('btnGuardarIngreso');
+  const resCount = document.getElementById('resumenIngresoCount');
+
   if (!lista) return;
   lista.innerHTML = '';
 
   if (listaIngresoActual.length === 0) {
     lista.innerHTML = `<p class="text-xs text-slate-400 italic py-2">Ningún ítem agregado.</p>`;
     if (btnConf) btnConf.disabled = true;
+    if (resCount) resCount.textContent = '0 ítems';
     return;
   }
 
   if (btnConf) btnConf.disabled = false;
+  let totalUnidades = 0;
+
   listaIngresoActual.forEach((item, idx) => {
+    totalUnidades += item.cantidad;
     const div = document.createElement('div');
     div.className = 'flex justify-between items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs';
     div.innerHTML = `
@@ -935,22 +1092,30 @@ function renderListaIngreso() {
     `;
     lista.appendChild(div);
   });
+
+  if (resCount) resCount.textContent = `${listaIngresoActual.length} tipo(s) | Total: ${totalUnidades}`;
 }
 
 function renderListaBaja() {
   const lista = document.getElementById('listaBajaActual');
   const btnConf = document.getElementById('btnGuardarBajas');
+  const resCount = document.getElementById('resumenBajaCount');
+
   if (!lista) return;
   lista.innerHTML = '';
 
   if (listaBajaActual.length === 0) {
     lista.innerHTML = `<p class="text-xs text-slate-400 italic py-2">Ningún ítem agregado.</p>`;
     if (btnConf) btnConf.disabled = true;
+    if (resCount) resCount.textContent = '0 ítems';
     return;
   }
 
   if (btnConf) btnConf.disabled = false;
+  let totalUnidades = 0;
+
   listaBajaActual.forEach((item, idx) => {
+    totalUnidades += item.cantidad;
     const div = document.createElement('div');
     div.className = 'flex justify-between items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs';
     div.innerHTML = `
@@ -962,6 +1127,8 @@ function renderListaBaja() {
     `;
     lista.appendChild(div);
   });
+
+  if (resCount) resCount.textContent = `${listaBajaActual.length} tipo(s) | Total: ${totalUnidades}`;
 }
 
 function renderCierreTurno() {
@@ -1012,8 +1179,8 @@ function renderReporteExcel() {
 
   const inputDesde = document.getElementById('filtroFechaDesde');
   const inputHasta = document.getElementById('filtroFechaHasta');
-  const hoyIso = new Date().toISOString().split('T')[0];
 
+  const hoyIso = new Date().toISOString().split('T')[0];
   if (inputDesde && !inputDesde.value) inputDesde.value = hoyIso;
   if (inputHasta && !inputHasta.value) inputHasta.value = hoyIso;
 
@@ -1085,7 +1252,7 @@ window.descargarExcelMovimientos = function() {
   document.body.removeChild(link);
 };
 
-// --- BITÁCORA DE MOVIMIENTOS (Excluye ventas) ---
+// --- BITÁCORA DE MOVIMIENTOS (Solo Traspasos, Ingresos y Bajas) ---
 function renderHistorial() {
   const contenedor = document.getElementById('contenedorHistorial');
   const empty = document.getElementById('emptyHistorial');
@@ -1125,53 +1292,6 @@ function renderHistorial() {
     contenedor.appendChild(card);
   });
 }
-
-function renderPanelMantenimiento(nombreUsuario) {
-  let panel = document.getElementById('panelMantenimientoAdmin');
-  const tabContent = document.getElementById('sec-nuevo_prod');
-  const esAdmin = nombreUsuario.trim().toLowerCase() === 'administrador';
-  if (!tabContent) return;
-
-  if (!esAdmin) {
-    if (panel) panel.remove();
-    return;
-  }
-
-  if (!panel) {
-    panel = document.createElement('div');
-    panel.id = 'panelMantenimientoAdmin';
-    panel.className = 'bg-slate-900 border border-slate-800 rounded-2xl p-4 mt-4 text-white space-y-3 shadow-xl';
-    tabContent.appendChild(panel);
-  }
-
-  panel.innerHTML = `
-    <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
-      <span class="text-lg">⚙️</span>
-      <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Mantenimiento de Datos</h3>
-    </div>
-    <div class="space-y-2 text-xs">
-      <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex flex-col gap-2">
-        <label class="font-semibold text-slate-300">Borrar Historial:</label>
-        <div class="flex gap-2">
-          <select id="selectBorradoTiempo" class="bg-slate-900 border border-slate-700 text-xs text-white rounded-lg px-2 py-1 flex-1">
-            <option value="todo">⚠️ BORRAR TODO EL HISTORIAL</option>
-          </select>
-          <button onclick="ejecutarBorradoHistorial()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1 rounded-lg transition">Ejecutar</button>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-window.ejecutarBorradoHistorial = function() {
-  if (confirm("⚠️ ¿Confirmas borrar TODO el historial permanentemente?")) {
-    remove(historyRef).then(() => {
-      historialMovimientos = [];
-      renderTodo();
-      alert("✅ Historial borrado.");
-    });
-  }
-};
 
 function iniciarApp() {
   configurarModalLogin();
