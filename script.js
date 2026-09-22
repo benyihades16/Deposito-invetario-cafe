@@ -98,7 +98,7 @@ onValue(cafeGranoRef, (snapshot) => {
   renderControlCafe();
 });
 
-// --- GESTIÓN DE PERFILES Y SESIÓN ---
+// --- GESTIÓN DE PERFILES Y SESIÓN (INTERFAZ DE TARJETAS) ---
 
 function verificarSesion() {
   const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
@@ -114,50 +114,101 @@ function verificarSesion() {
 }
 
 function configurarModalLogin() {
-  const selectUsuario = document.getElementById('loginUsuario');
-  const divPin = document.getElementById('divPinAdmin');
-  const inputPin = document.getElementById('loginPin');
-  const btnIngresar = document.getElementById('btnIngresarApp');
+  const modalLogin = document.getElementById('loginModal');
+  if (!modalLogin) return;
 
-  if (!selectUsuario || !btnIngresar) return;
+  const modalContentBox = modalLogin.querySelector('.bg-white') || modalLogin.firstElementChild;
+  if (!modalContentBox) return;
 
-  const esAdminInicial = selectUsuario.value.trim().toLowerCase() === 'administrador';
-  if (esAdminInicial) {
-    divPin?.classList.remove('hidden');
-  } else {
-    divPin?.classList.add('hidden');
-  }
+  modalContentBox.innerHTML = `
+    <div class="flex flex-col items-center text-center space-y-4">
+      <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-2xl shadow-inner">☕</div>
+      <div>
+        <h2 class="text-base font-bold text-slate-900">Control de Depósito y Cafetería</h2>
+        <p class="text-xs text-slate-500">Selecciona tu perfil para ingresar</p>
+      </div>
 
-  selectUsuario.addEventListener('change', (e) => {
-    const val = e.target.value.trim().toLowerCase();
-    if (val === 'administrador') {
-      divPin?.classList.remove('hidden');
-    } else {
-      divPin?.classList.add('hidden');
-      if (inputPin) inputPin.value = '';
-    }
+      <div id="gridPerfiles" class="grid grid-cols-2 gap-3 w-full my-2">
+        <button type="button" data-usuario="Administrador" class="perfil-card flex flex-col items-center justify-center p-3.5 rounded-xl border-2 border-slate-200 hover:border-amber-500 hover:bg-amber-50/50 transition cursor-pointer group">
+          <span class="text-2xl mb-1">👑</span>
+          <span class="font-bold text-xs text-slate-800 group-hover:text-amber-700">Administrador</span>
+        </button>
+        <button type="button" data-usuario="Operador" class="perfil-card flex flex-col items-center justify-center p-3.5 rounded-xl border-2 border-slate-200 hover:border-sky-500 hover:bg-sky-50/50 transition cursor-pointer group">
+          <span class="text-2xl mb-1">👤</span>
+          <span class="font-bold text-xs text-slate-800 group-hover:text-sky-700">Operador</span>
+        </button>
+      </div>
+
+      <div id="divPinAdminContainer" class="w-full hidden space-y-1.5 text-left">
+        <label class="text-[11px] font-semibold text-slate-600 block">PIN de Administrador:</label>
+        <input type="password" id="loginPinInput" placeholder="Ingrese PIN (1234)" class="w-full bg-slate-50 border border-slate-300 text-xs text-slate-900 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 text-center tracking-widest font-bold" maxlength="4" />
+      </div>
+
+      <button id="btnConfirmarIngresoPerfil" type="button" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 rounded-xl transition shadow-md hidden">
+        Ingresar al Sistema
+      </button>
+    </div>
+  `;
+
+  let usuarioSeleccionado = null;
+  const cards = modalContentBox.querySelectorAll('.perfil-card');
+  const divPinContainer = document.getElementById('divPinAdminContainer');
+  const pinInput = document.getElementById('loginPinInput');
+  const btnConfirmar = document.getElementById('btnConfirmarIngresoPerfil');
+
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      cards.forEach(c => c.classList.remove('border-amber-500', 'bg-amber-50', 'border-sky-500', 'bg-sky-50', 'ring-2', 'ring-amber-200', 'ring-sky-200'));
+      
+      usuarioSeleccionado = card.getAttribute('data-usuario');
+      const esAdmin = usuarioSeleccionado.toLowerCase() === 'administrador';
+
+      if (esAdmin) {
+        card.classList.add('border-amber-500', 'bg-amber-50', 'ring-2', 'ring-amber-200');
+        divPinContainer.classList.remove('hidden');
+        btnConfirmar.classList.remove('hidden');
+        if (pinInput) {
+          pinInput.value = '';
+          pinInput.focus();
+        }
+      } else {
+        card.classList.add('border-sky-500', 'bg-sky-50', 'ring-2', 'ring-sky-200');
+        divPinContainer.classList.add('hidden');
+        btnConfirmar.classList.remove('hidden');
+        if (pinInput) pinInput.value = '';
+      }
+    });
   });
 
-  btnIngresar.addEventListener('click', () => {
-    const usuarioSeleccionado = selectUsuario.value.trim();
-    const esAdmin = usuarioSeleccionado.toLowerCase() === 'administrador';
+  btnConfirmar.addEventListener('click', () => {
+    if (!usuarioSeleccionado) {
+      alert("Selecciona un perfil primero.");
+      return;
+    }
 
+    const esAdmin = usuarioSeleccionado.toLowerCase() === 'administrador';
     if (esAdmin) {
-      const pinIngresado = inputPin ? inputPin.value.trim() : '';
-      if (pinIngresado !== ADMIN_PIN) {
-        alert('❌ PIN incorrecto. Intenta nuevamente.');
-        if (inputPin) {
-          inputPin.value = '';
-          inputPin.focus();
+      const pinVal = pinInput ? pinInput.value.trim() : '';
+      if (pinVal !== ADMIN_PIN) {
+        alert("❌ PIN incorrecto. Intenta nuevamente.");
+        if (pinInput) {
+          pinInput.value = '';
+          pinInput.focus();
         }
         return;
       }
     }
 
     sessionStorage.setItem('usuarioLogueado', usuarioSeleccionado);
-    if (inputPin) inputPin.value = '';
+    if (pinInput) pinInput.value = '';
     verificarSesion();
     renderTodo();
+  });
+
+  pinInput?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      btnConfirmar.click();
+    }
   });
 }
 
@@ -775,7 +826,7 @@ function confirmarBajasMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- INSUMOS ---
+// --- Insumos ---
 window.pasarInsumo = function(idInsumo) {
   const prod = inventario.find(p => p.id === idInsumo);
   if (!prod) return;
@@ -917,7 +968,6 @@ function renderInventario() {
   const tbodyDep = document.getElementById('tablaDeposito');
   if (tbodyDep) {
     tbodyDep.innerHTML = '';
-    // CORRECCIÓN: Se quita el filtro p.tipo !== 'insumo' para que los insumos (vasos, tapas, etc.) también aparezcan en Depósito
     const depositoItems = inventario.filter(p => p.tipo !== 'cafe');
     ordenarInventario(depositoItems).forEach(prod => {
       const esCafe = prod.tipo === 'cafe';
@@ -1255,7 +1305,7 @@ window.descargarExcelMovimientos = function() {
   document.body.removeChild(link);
 };
 
-// --- BITÁCORA DE MOVIMIENTOS (Solo Traspasos, Ingresos y Bajas) ---
+// --- BITÁCORA DE MOVIMIENTOS ---
 function renderHistorial() {
   const contenedor = document.getElementById('contenedorHistorial');
   const empty = document.getElementById('emptyHistorial');
