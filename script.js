@@ -13,7 +13,7 @@ const firebaseConfig = {
   measurementId: "G-XM7N3YRZJ3"
 };
 
-const ADMIN_PIN = "1706";
+const ADMIN_PIN = "1234";
 const GRAMOS_POR_CAFE_DEF = 18; // 18g estándar por defecto
 
 const app = initializeApp(firebaseConfig);
@@ -31,7 +31,7 @@ let listaIngresoActual = [];
 let listaBajaActual = [];
 let listaTicketBarraActual = [];
 let filtroBusquedaBarra = ''; 
-let counterMovimiento = 0; // Para garantizar IDs únicos en movimientos simultáneos
+let counterMovimiento = 0;
 
 // Helper para formato de fecha único y estándar (DD/MM/YYYY)
 function getFechaHoy() {
@@ -98,7 +98,7 @@ onValue(cafeGranoRef, (snapshot) => {
   renderControlCafe();
 });
 
-// --- GESTIÓN DE PERFILES Y SESIÓN (INTERFAZ DE TARJETAS) ---
+// --- GESTIÓN DE PERFILES Y SESIÓN ---
 
 function verificarSesion() {
   const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
@@ -305,7 +305,7 @@ window.agregarCafeGranoAdmin = function() {
   alert(`✅ Se agregaron ${gramos}g al control de café en grano.`);
 };
 
-// --- GESTIÓN DE PRODUCTOS Y GRAMAJE DINÁMICO ---
+// --- GESTIÓN DE PRODUCTOS Y GRAMAJE ---
 function configurarSelectorTipoProducto() {
   const tipoInput = document.getElementById('prodTipo');
   if (tipoInput) {
@@ -394,13 +394,48 @@ window.eliminarProducto = function(id, nombre) {
   }
 };
 
-// --- REGISTRO ROBUSTO DE MOVIMIENTOS ---
+// --- REGISTRO ROBUSTO CON ACOPLAMIENTO POR TURNO ---
 function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   const usuario = sessionStorage.getItem('usuarioLogueado') || 'Usuario';
   const ahora = new Date();
   const fechaCorta = getFechaHoy();
   const horaStr = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+  // Si es Traspaso, Ingreso o Baja, intentamos agrupar/acoplar al registro del mismo día y tipo
+  if (tipo === 'TRASPASO' || tipo === 'INGRESO' || tipo === 'BAJA_CORTESIA') {
+    const registroExistente = historialMovimientos.find(m => 
+      m.fechaCorta === fechaCorta && 
+      m.usuario === usuario && 
+      m.tipo === tipo &&
+      m.origen === origen
+    );
+
+    if (registroExistente && registroExistente._firebaseKey) {
+      itemsNuevos.forEach(nuevoIt => {
+        const itemEnDb = registroExistente.items.find(i => i.nombre === nuevoIt.nombre);
+        if (itemEnDb) {
+          itemEnDb.cantidad += nuevoIt.cantidad;
+          itemEnDb.hora = horaStr;
+        } else {
+          registroExistente.items.push({
+            id: nuevoIt.id || Date.now(),
+            nombre: nuevoIt.nombre,
+            cantidad: nuevoIt.cantidad,
+            hora: horaStr
+          });
+        }
+      });
+      registroExistente.fecha = `${fechaCorta} - ${horaStr}`;
+
+      const key = registroExistente._firebaseKey;
+      const dataToSave = { ...registroExistente };
+      delete dataToSave._firebaseKey;
+      set(ref(db, `historial/${key}`), dataToSave);
+      return;
+    }
+  }
+
+  // De lo contrario, se crea un registro nuevo (para Ventas u otros)
   const nuevoRegistro = {
     id: Date.now() + (counterMovimiento++),
     tipo: tipo,
@@ -417,10 +452,84 @@ function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   };
 
   push(historyRef, nuevoRegistro).catch(err => {
-    console.error("Error al registrar movimiento en Firebase:", err);
+    console.error("Error al registrar movimiento:", err);
     alert("❌ Error al guardar el movimiento en la base de datos.");
   });
 }
+
+// --- ANULACIÓN POR ÍTEM INDIVIDUAL Y REVERSIÓN DE STOCK ---
+window.anularItemMovimiento = function(firebaseKey, itemIndex) {
+  const reg = historialMovimientos.find(m => m._firebaseKey === firebaseKey);
+  if (!reg) return;
+
+  const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
+  const esAdmin = usuarioLogueado?.toLowerCase() === 'administrador';
+
+  if (!esAdmin && reg.usuario !== usuarioLogueado) {
+    alert("❌ Solo puedes modificar tus propios registros o ser Administrador.");
+    return;
+  }
+
+  const itemEliminar = reg.items[itemIndex];
+  if (!itemEliminar) return;
+
+  if (confirm(`¿Eliminar el ítem "${itemEliminar.nombre} (x${itemEliminar.cantidad})" y revertir su stock?`)) {
+    const prod = inventario.find(p => p.nombre === itemEliminar.nombre);
+    if (prod && prod.tipo !== 'cafe') {
+      if (reg.tipo === 'TRASPASO') {
+        prod.stockDeposito += itemEliminar.cantidad;
+        prod.stockCafeteria = Math.max(0, prod.stockCafeteria - itemEliminar.cantidad);
+      } else if (reg.tipo === 'INGRESO') {
+        if (reg.origen?.includes('Depósito')) {
+          prod.stockDeposito = Math.max(0, prod.stockDeposito - itemEliminar.cantidad);
+        } else {
+          prod.stockCafeteria = Math.max(0, prod.stockCafeteria - itemEliminar.cantidad);
+        }
+      } else if (reg.tipo === 'BAJA_CORTESIA') {
+        if (reg.origen?.toLowerCase().includes('cafeteria')) {
+          prod.stockCafeteria += itemEliminar.cantidad;
+        } else {
+          prod.stockDeposito += itemEliminar.cantidad;
+        }
+      } else if (reg.tipo.includes('VENTA')) {
+        prod.stockCafeteria += itemEliminar.cantidad;
+      }
+      set(inventoryRef, inventario);
+    }
+
+    reg.items.splice(itemIndex, 1);
+
+    if (reg.items.length === 0) {
+      remove(ref(db, `historial/${firebaseKey}`));
+    } else {
+      const dataToSave = { ...reg };
+      delete dataToSave._firebaseKey;
+      set(ref(db, `historial/${firebaseKey}`), dataToSave);
+    }
+
+    alert("✅ Ítem anulado y stock revertido correctamente.");
+  }
+};
+
+window.anularMovimientoBitacora = function(firebaseKey, usuarioMovimiento) {
+  const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
+  const esAdmin = usuarioLogueado?.toLowerCase() === 'administrador';
+
+  if (!esAdmin && usuarioLogueado !== usuarioMovimiento) {
+    alert("❌ Solo puedes anular tus propios movimientos o debes ser Administrador.");
+    return;
+  }
+
+  if (confirm("¿Estás seguro de anular y eliminar todo este registro completo de la bitácora?")) {
+    remove(ref(db, `historial/${firebaseKey}`))
+      .then(() => {
+        alert("✅ Movimiento anulado correctamente.");
+      })
+      .catch((error) => {
+        alert("❌ Error al anular: " + error.message);
+      });
+  }
+};
 
 // --- TRASPASOS ---
 function agregarATraspaso() {
@@ -483,7 +592,7 @@ function confirmarTraspasoMultiple() {
   registrarMovimientoEnTurno('TRASPASO', [...listaTraspasoActual], 'Depósito ➔ Cafetería');
 
   listaTraspasoActual = [];
-  alert(`✅ Traspaso registrado correctamente.`);
+  alert(`✅ Traspaso registrado y acoplado correctamente.`);
   irASeccion('tab-stock');
 }
 
@@ -649,7 +758,7 @@ function emitirTicketVenta() {
   irASeccion('tab-tickets');
 }
 
-// --- RECIBOS / TICKETS (Con Números Correlativos Secuenciales) ---
+// --- RECIBOS / TICKETS (Con cancelación por ítem) ---
 function renderRecibosTickets() {
   const contenedor = document.getElementById('contenedorRecibosTickets');
   const empty = document.getElementById('emptyRecibos');
@@ -664,26 +773,35 @@ function renderRecibosTickets() {
   }
   empty?.classList.add('hidden');
 
-  // Ordenamos cronológicamente para asignar números correlativos exactos (T-0001, T-0002...)
   const ventasCronologicas = [...ventas].sort((a, b) => a.id - b.id);
+  const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
+  const esAdmin = usuarioLogueado?.toLowerCase() === 'administrador';
 
   ventas.forEach(reg => {
     const indexCorrelativo = ventasCronologicas.findIndex(v => v._firebaseKey === reg._firebaseKey) + 1;
     const numeroTicketStr = `T-${String(indexCorrelativo).padStart(4, '0')}`;
+    const puedeBorrar = esAdmin || reg.usuario === usuarioLogueado;
 
     const card = document.createElement('div');
     card.className = 'bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2 text-xs';
-    const itemsHTML = reg.items ? reg.items.map(it => `
+    
+    const itemsHTML = reg.items ? reg.items.map((it, idxIt) => `
       <div class="flex justify-between items-center py-1 border-b border-slate-200/60 last:border-0">
         <span class="text-slate-800">${it.nombre} (x${it.cantidad})</span>
-        <span class="font-bold text-sky-700">${it.hora || ''}</span>
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-sky-700">${it.hora || ''}</span>
+          ${puedeBorrar ? `<button onclick="anularItemMovimiento('${reg._firebaseKey}',${idxIt})" class="text-rose-500 hover:text-rose-700 text-[10px] font-bold px-1 rounded bg-rose-50" title="Eliminar este ítem">✕</button>` : ''}
+        </div>
       </div>
     `).join('') : '';
 
     card.innerHTML = `
       <div class="flex justify-between items-center border-b border-slate-200 pb-2">
         <span class="font-bold text-slate-900">🧾 Ticket #${numeroTicketStr}</span>
-        <span class="text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded font-semibold">👤 ${reg.usuario}</span>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded font-semibold">👤 ${reg.usuario}</span>
+          ${puedeBorrar ? `<button onclick="anularMovimientoBitacora('${reg._firebaseKey}', '${reg.usuario}')" class="text-rose-600 hover:text-rose-800 text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100" title="Anular ticket entero">Anular</button>` : ''}
+        </div>
       </div>
       <div class="space-y-1 bg-white p-2.5 rounded-lg border border-slate-200">${itemsHTML}</div>
       <div class="text-[10px] text-slate-500 text-right font-mono">${reg.fecha} | ${reg.origen || ''}</div>
@@ -753,7 +871,7 @@ function confirmarIngresoStockMultiple() {
   });
 
   listaIngresoActual = [];
-  alert(`✅ Ingresos guardados correctamente.`);
+  alert(`✅ Ingresos guardados y acoplados correctamente.`);
   renderListaIngreso();
   irASeccion('tab-stock');
 }
@@ -831,7 +949,7 @@ function confirmarBajasMultiple() {
   });
 
   listaBajaActual = [];
-  alert(`✅ Salidas registradas correctamente.`);
+  alert(`✅ Salidas registradas y acopladas correctamente.`);
   renderListaBaja();
   irASeccion('tab-stock');
 }
@@ -915,17 +1033,6 @@ window.reiniciarStockTodo = function() {
       renderTodo();
       alert("✅ Stock reiniciado a 0.");
     });
-  }
-};
-
-window.reiniciarCafeGranoAdmin = function() {
-  if (sessionStorage.getItem('usuarioLogueado')?.toLowerCase() !== 'administrador') return;
-  
-  if (confirm("⚠️ ¿Estás seguro de restablecer a 0 el café en grano (tanto el inicial como el actual)?")) {
-    cafeGranoData.inicial = 0;
-    cafeGranoData.actual = 0;
-    set(cafeGranoRef, cafeGranoData);
-    alert("✅ El control de café en grano ha sido restablecido a 0.");
   }
 };
 
@@ -1326,28 +1433,7 @@ window.descargarExcelMovimientos = function() {
   document.body.removeChild(link);
 };
 
-// --- ANULACIÓN INDIVIDUAL EN BITÁCORA ---
-window.anularMovimientoBitacora = function(firebaseKey, usuarioMovimiento) {
-  const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
-  const esAdmin = usuarioLogueado?.toLowerCase() === 'administrador';
-
-  if (!esAdmin && usuarioLogueado !== usuarioMovimiento) {
-    alert("❌ Solo puedes anular tus propios movimientos o debes ser Administrador.");
-    return;
-  }
-
-  if (confirm("¿Estás seguro de anular y eliminar este registro de la bitácora?")) {
-    remove(ref(db, `historial/${firebaseKey}`))
-      .then(() => {
-        alert("✅ Movimiento anulado correctamente.");
-      })
-      .catch((error) => {
-        alert("❌ Error al anular: " + error.message);
-      });
-  }
-};
-
-// --- BITÁCORA DE MOVIMIENTOS (Agrupada por Turno y con Anulación por Ítem) ---
+// --- BITÁCORA DE MOVIMIENTOS (Con anulación de ítems individuales) ---
 function renderHistorial() {
   const contenedor = document.getElementById('contenedorHistorial');
   const empty = document.getElementById('emptyHistorial');
@@ -1366,7 +1452,6 @@ function renderHistorial() {
   }
   empty?.classList.add('hidden');
 
-  // Agrupar movimientos por Fecha y Usuario para unificar los traspasos/ingresos del turno en una sola tarjeta limpia
   const gruposTurno = {};
   movsBitacora.forEach(reg => {
     const clave = `${reg.fechaCorta}_${reg.usuario}`;
@@ -1384,22 +1469,24 @@ function renderHistorial() {
     const card = document.createElement('div');
     card.className = 'bg-white border border-slate-200 rounded-xl p-3 space-y-3 shadow-sm text-xs';
     
-    // Ordenar cronológicamente los registros dentro del grupo
     grupo.registros.sort((a, b) => a.id - b.id);
 
     let contenidoRegistrosHTML = '';
     grupo.registros.forEach(reg => {
       const horaMovimiento = reg.fecha ? reg.fecha.split(' - ')[1] || '' : '';
-      const itemsHTML = reg.items ? reg.items.map(it => `
+      const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
+      const esAdmin = usuarioLogueado?.toLowerCase() === 'administrador';
+      const puedeBorrar = esAdmin || reg.usuario === usuarioLogueado;
+
+      const itemsHTML = reg.items ? reg.items.map((it, idxIt) => `
         <div class="flex justify-between items-center py-1 border-b border-slate-100 last:border-0">
           <span class="text-slate-800">${it.nombre}</span>
-          <span class="font-bold text-sky-600">${it.cantidad}</span>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-sky-600">${it.cantidad}</span>
+            ${puedeBorrar ? `<button onclick="anularItemMovimiento('${reg._firebaseKey}',${idxIt})" class="text-rose-500 hover:text-rose-700 text-[10px] font-bold px-1 rounded bg-rose-50" title="Eliminar este ítem">✕</button>` : ''}
+          </div>
         </div>
       `).join('') : '';
-
-      const usuarioActual = sessionStorage.getItem('usuarioLogueado');
-      const esAdmin = usuarioActual?.toLowerCase() === 'administrador';
-      const puedeBorrar = esAdmin || reg.usuario === usuarioActual;
 
       contenidoRegistrosHTML += `
         <div class="bg-slate-50 border border-slate-100 rounded-lg p-2.5 space-y-1.5">
@@ -1407,7 +1494,7 @@ function renderHistorial() {
             <span class="font-bold px-1.5 py-0.5 rounded text-[10px] bg-sky-100 text-sky-800">${reg.tipo}</span>
             <div class="flex items-center gap-2">
               <span class="text-[10px] text-slate-500 font-mono">⏰ ${horaMovimiento} | ${reg.origen || ''}</span>
-              ${puedeBorrar ? `<button onclick="anularMovimientoBitacora('${reg._firebaseKey}', '${reg.usuario}')" class="text-rose-500 hover:text-rose-700 text-xs font-bold px-1.5 py-0.5 rounded bg-rose-50 transition" title="Anular este movimiento">❌ Anular</button>` : ''}
+              ${puedeBorrar ? `<button onclick="anularMovimientoBitacora('${reg._firebaseKey}', '${reg.usuario}')" class="text-rose-500 hover:text-rose-700 text-xs font-bold px-1.5 py-0.5 rounded bg-rose-50 transition" title="Anular todo este bloque">❌ Anular</button>` : ''}
             </div>
           </div>
           <div class="space-y-0.5">${itemsHTML}</div>
@@ -1472,7 +1559,6 @@ function iniciarApp() {
   document.getElementById('btnGuardarBajas')?.addEventListener('click', confirmarBajasMultiple);
   document.getElementById('btnCopiarWhatsApp')?.addEventListener('click', copiarReporteWhatsApp);
   document.getElementById('btnDescargarExcel')?.addEventListener('click', descargarExcelMovimientos);
-  document.getElementById('btnAdminGuardarCafe')?.addEventListener('click', agregarCafeGranoAdmin);
   document.getElementById('filtroFechaDesde')?.addEventListener('change', renderReporteExcel);
   document.getElementById('filtroFechaHasta')?.addEventListener('change', renderReporteExcel);
 }
