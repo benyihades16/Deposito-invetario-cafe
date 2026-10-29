@@ -13,7 +13,12 @@ const firebaseConfig = {
   measurementId: "G-XM7N3YRZJ3"
 };
 
-const ADMIN_PIN = "1706";
+const PINS_USUARIOS = {
+  "administrador": "1706",
+  "usuario 1": "2525",
+  "usuario 2": "2026"
+};
+
 const GRAMOS_POR_CAFE_DEF = 18; // 18g estándar por defecto
 
 const app = initializeApp(firebaseConfig);
@@ -125,27 +130,27 @@ function configurarModalLogin() {
       <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-2xl shadow-inner">☕</div>
       <div>
         <h2 class="text-base font-bold text-slate-900">Control de Depósito y Cafetería</h2>
-        <p class="text-xs text-slate-500">Selecciona tu perfil para ingresar</p>
+        <p class="text-xs text-slate-500">Selecciona tu perfil e ingresa tu PIN</p>
       </div>
 
       <div id="gridPerfiles" class="grid grid-cols-3 gap-2 w-full my-2">
         <button type="button" data-usuario="Administrador" class="perfil-card flex flex-col items-center justify-center p-3 rounded-xl border-2 border-slate-200 hover:border-amber-500 hover:bg-amber-50/50 transition cursor-pointer group">
           <span class="text-xl mb-1">👑</span>
-          <span class="font-bold text-[11px] text-slate-800 group-hover:text-amber-700">Administrador</span>
+          <span class="font-bold text-[11px] text-slate-800">Administrador</span>
         </button>
         <button type="button" data-usuario="Usuario 1" class="perfil-card flex flex-col items-center justify-center p-3 rounded-xl border-2 border-slate-200 hover:border-sky-500 hover:bg-sky-50/50 transition cursor-pointer group">
           <span class="text-xl mb-1">👤</span>
-          <span class="font-bold text-[11px] text-slate-800 group-hover:text-sky-700">Usuario 1</span>
+          <span class="font-bold text-[11px] text-slate-800">Usuario 1</span>
         </button>
         <button type="button" data-usuario="Usuario 2" class="perfil-card flex flex-col items-center justify-center p-3 rounded-xl border-2 border-slate-200 hover:border-sky-500 hover:bg-sky-50/50 transition cursor-pointer group">
           <span class="text-xl mb-1">👤</span>
-          <span class="font-bold text-[11px] text-slate-800 group-hover:text-sky-700">Usuario 2</span>
+          <span class="font-bold text-[11px] text-slate-800">Usuario 2</span>
         </button>
       </div>
 
-      <div id="divPinAdminContainer" class="w-full hidden space-y-1.5 text-left">
-        <label class="text-[11px] font-semibold text-slate-600 block">PIN de Administrador:</label>
-        <input type="password" id="loginPinInput" placeholder="Ingrese PIN (1234)" class="w-full bg-slate-50 border border-slate-300 text-xs text-slate-900 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 text-center tracking-widest font-bold" maxlength="4" />
+      <div id="divPinContainer" class="w-full space-y-1.5 text-left">
+        <label class="text-[11px] font-semibold text-slate-600 block">PIN de Acceso:</label>
+        <input type="password" id="loginPinInput" placeholder="Ingrese PIN" class="w-full bg-slate-50 border border-slate-300 text-xs text-slate-900 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 text-center tracking-widest font-bold" maxlength="4" />
       </div>
 
       <button id="btnConfirmarIngresoPerfil" type="button" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 rounded-xl transition shadow-md hidden">
@@ -156,7 +161,6 @@ function configurarModalLogin() {
 
   let usuarioSeleccionado = null;
   const cards = modalContentBox.querySelectorAll('.perfil-card');
-  const divPinContainer = document.getElementById('divPinAdminContainer');
   const pinInput = document.getElementById('loginPinInput');
   const btnConfirmar = document.getElementById('btnConfirmarIngresoPerfil');
 
@@ -165,21 +169,11 @@ function configurarModalLogin() {
       cards.forEach(c => c.classList.remove('border-amber-500', 'bg-amber-50', 'border-sky-500', 'bg-sky-50', 'ring-2', 'ring-amber-200', 'ring-sky-200'));
       
       usuarioSeleccionado = card.getAttribute('data-usuario');
-      const esAdmin = usuarioSeleccionado.toLowerCase() === 'administrador';
-
-      if (esAdmin) {
-        card.classList.add('border-amber-500', 'bg-amber-50', 'ring-2', 'ring-amber-200');
-        divPinContainer.classList.remove('hidden');
-        btnConfirmar.classList.remove('hidden');
-        if (pinInput) {
-          pinInput.value = '';
-          pinInput.focus();
-        }
-      } else {
-        card.classList.add('border-sky-500', 'bg-sky-50', 'ring-2', 'ring-sky-200');
-        divPinContainer.classList.add('hidden');
-        btnConfirmar.classList.remove('hidden');
-        if (pinInput) pinInput.value = '';
+      card.classList.add('border-sky-500', 'bg-sky-50', 'ring-2', 'ring-sky-200');
+      btnConfirmar.classList.remove('hidden');
+      if (pinInput) {
+        pinInput.value = '';
+        pinInput.focus();
       }
     });
   });
@@ -190,17 +184,16 @@ function configurarModalLogin() {
       return;
     }
 
-    const esAdmin = usuarioSeleccionado.toLowerCase() === 'administrador';
-    if (esAdmin) {
-      const pinVal = pinInput ? pinInput.value.trim() : '';
-      if (pinVal !== ADMIN_PIN) {
-        alert("❌ PIN incorrecto. Intenta nuevamente.");
-        if (pinInput) {
-          pinInput.value = '';
-          pinInput.focus();
-        }
-        return;
+    const pinVal = pinInput ? pinInput.value.trim() : '';
+    const pinCorrecto = PINS_USUARIOS[usuarioSeleccionado.toLowerCase()];
+
+    if (pinVal !== pinCorrecto) {
+      alert("❌ PIN incorrecto. Intenta nuevamente.");
+      if (pinInput) {
+        pinInput.value = '';
+        pinInput.focus();
       }
+      return;
     }
 
     sessionStorage.setItem('usuarioLogueado', usuarioSeleccionado);
@@ -218,13 +211,21 @@ function configurarModalLogin() {
 
 function aplicarPermisosPerfil(nombreUsuario) {
   const tabNuevoProd = document.getElementById('tab-nuevo_prod');
+  const menuItemBajas = document.getElementById('menuItemBajas');
   const thAdminAcciones = document.querySelectorAll('.thAdminAcciones');
   const panelAdminCafe = document.getElementById('panelAdminAgregarCafe');
-  const esAdmin = nombreUsuario.trim().toLowerCase() === 'administrador';
+  const usuarioLower = nombreUsuario.trim().toLowerCase();
+  const esAdmin = usuarioLower === 'administrador';
+  const esUsuario1 = usuarioLower === 'usuario 1';
 
   if (tabNuevoProd) {
     const labelTab = document.querySelector('label[for="tab-nuevo_prod"]');
     if (labelTab) labelTab.style.display = esAdmin ? '' : 'none';
+  }
+
+  // Ocultar Bajas y Mermas unicamente al Administrador
+  if (menuItemBajas) {
+    menuItemBajas.style.display = esAdmin ? 'none' : 'block';
   }
 
   thAdminAcciones.forEach(el => {
@@ -232,8 +233,9 @@ function aplicarPermisosPerfil(nombreUsuario) {
     else el.classList.add('hidden');
   });
 
+  // Habilitar agregar y restablecer café solo para Administrador y Usuario 1
   if (panelAdminCafe) {
-    if (esAdmin) panelAdminCafe.classList.remove('hidden');
+    if (esAdmin || esUsuario1) panelAdminCafe.classList.remove('hidden');
     else panelAdminCafe.classList.add('hidden');
   }
 
@@ -290,7 +292,9 @@ function renderControlCafe() {
 }
 
 window.agregarCafeGranoAdmin = function() {
-  if (sessionStorage.getItem('usuarioLogueado')?.toLowerCase() !== 'administrador') return;
+  const usuarioLog = sessionStorage.getItem('usuarioLogueado')?.toLowerCase();
+  if (usuarioLog !== 'administrador' && usuarioLog !== 'usuario 1') return;
+
   const input = document.getElementById('inputAdminCafeGramos');
   const gramos = parseFloat(input?.value);
   if (isNaN(gramos) || gramos <= 0) {
@@ -303,6 +307,18 @@ window.agregarCafeGranoAdmin = function() {
   set(cafeGranoRef, cafeGranoData);
   input.value = '';
   alert(`✅ Se agregaron ${gramos}g al control de café en grano.`);
+};
+
+window.reiniciarCafeGranoAdmin = function() {
+  const usuarioLog = sessionStorage.getItem('usuarioLogueado')?.toLowerCase();
+  if (usuarioLog !== 'administrador' && usuarioLog !== 'usuario 1') return;
+
+  if (confirm("🔄 ¿Estás seguro de restablecer el contador de café a 0?")) {
+    cafeGranoData.inicial = 0;
+    cafeGranoData.actual = 0;
+    set(cafeGranoRef, cafeGranoData);
+    alert("✅ Contador de café restablecido a 0.");
+  }
 };
 
 // --- GESTIÓN DE PRODUCTOS Y GRAMAJE DINÁMICO ---
@@ -394,6 +410,28 @@ window.eliminarProducto = function(id, nombre) {
   }
 };
 
+// --- VALIDACIÓN DE ANTIGÜEDAD DE 2 DÍAS PARA ANULACIÓN ---
+function validarAntiguedadAnulacion(fechaCortaRegistro) {
+  const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
+  const esAdmin = usuarioLogueado?.toLowerCase() === 'administrador';
+  if (esAdmin) return true; // Administrador puede anular cualquier fecha
+
+  const partes = fechaCortaRegistro.split('/');
+  if (partes.length !== 3) return false;
+  const fechaReg = new Date(`${partes[2]}-${partes[1]}-${partes[0]}`);
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+
+  const diferenciaMs = hoy - fechaReg;
+  const diferenciaDias = diferenciaMs / (1000 * 60 * 60 * 24);
+
+  if (diferenciaDias > 2) {
+    alert("❌ Este registro supera los 2 días de antigüedad y ya es permanente. Solo el Administrador puede anular registros anteriores.");
+    return false;
+  }
+  return true;
+}
+
 // --- REGISTRO DE MOVIMIENTOS Y ACOPLAMIENTO POR TURNO ---
 function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   const usuario = sessionStorage.getItem('usuarioLogueado') || 'Usuario';
@@ -461,6 +499,8 @@ window.anularItemMovimiento = function(firebaseKey, itemIndex) {
   const reg = historialMovimientos.find(m => m._firebaseKey === firebaseKey);
   if (!reg) return;
 
+  if (!validarAntiguedadAnulacion(reg.fechaCorta)) return;
+
   const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
   const esAdmin = usuarioLogueado?.toLowerCase() === 'administrador';
 
@@ -520,6 +560,11 @@ window.anularItemMovimiento = function(firebaseKey, itemIndex) {
 
 // --- ANULACIÓN COMPLETA DE MOVIMIENTO O TICKET ---
 window.anularMovimientoBitacora = function(firebaseKey, usuarioMovimiento) {
+  const reg = historialMovimientos.find(m => m._firebaseKey === firebaseKey);
+  if (!reg) return;
+
+  if (!validarAntiguedadAnulacion(reg.fechaCorta)) return;
+
   const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
   const esAdmin = usuarioLogueado?.toLowerCase() === 'administrador';
 
@@ -529,7 +574,6 @@ window.anularMovimientoBitacora = function(firebaseKey, usuarioMovimiento) {
   }
 
   if (confirm("¿Estás seguro de anular y eliminar este registro/ticket completo y revertir su stock y café?")) {
-    const reg = historialMovimientos.find(m => m._firebaseKey === firebaseKey);
     if (reg && reg.items) {
       reg.items.forEach(it => {
         const prod = inventario.find(p => p.nombre === it.nombre);
@@ -1098,7 +1142,6 @@ function renderTodo() {
   renderListaTraspaso();
   renderListaIngreso();
   renderListaBaja();
-  renderCierreTurno();
 }
 
 function renderInventario() {
@@ -1361,48 +1404,6 @@ function renderListaBaja() {
   if (resCount) resCount.textContent = `${listaBajaActual.length} tipo(s) | Total: ${totalUnidades}`;
 }
 
-function renderCierreTurno() {
-  const container = document.getElementById('tablaCierreTurno');
-  if (!container) return;
-
-  const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo' && p.tipo !== 'cafe'));
-  container.innerHTML = '';
-
-  productosVisibles.forEach(prod => {
-    const tr = document.createElement('tr');
-    tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
-    tr.innerHTML = `
-      <td class="py-2.5 px-3 font-medium text-slate-800">${prod.nombre}</td>
-      <td class="py-2.5 px-3 text-center text-sky-700 font-mono font-bold">${prod.stockCafeteria}</td>
-      <td class="py-2.5 px-3 text-center text-slate-600 font-mono">${prod.stockDeposito}</td>
-    `;
-    container.appendChild(tr);
-  });
-}
-
-window.copiarReporteWhatsApp = function() {
-  const selectTurno = document.getElementById('selectTurnoReporte');
-  const turnoNombre = selectTurno ? selectTurno.value : 'Turno General';
-  const fechaHoy = getFechaHoy();
-  const usuario = sessionStorage.getItem('usuarioLogueado') || 'Operador';
-
-  let texto = `📋 *CIERRE DE INVENTARIO - CAFETERÍA* 📋\n`;
-  texto += `📅 Fecha: ${fechaHoy}\n`;
-  texto += `⏰ Turno: ${turnoNombre}\n`;
-  texto += `👤 Responsable: ${usuario}\n`;
-  texto += `----------------------------------------\n`;
-  texto += `*STOCK EN VITRINA/CAFETERÍA:*\n`;
-
-  const productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo' && p.tipo !== 'cafe'));
-  productosVisibles.forEach(prod => {
-    texto += `• ${prod.nombre}: *${prod.stockCafeteria} unids*\n`;
-  });
-
-  navigator.clipboard.writeText(texto).then(() => {
-    alert("✅ ¡Reporte copiado al portapapeles!");
-  });
-};
-
 function renderReporteExcel() {
   const tbody = document.getElementById('tablaReporteExcel');
   if (!tbody) return;
@@ -1445,42 +1446,45 @@ function renderReporteExcel() {
   });
 }
 
-window.descargarExcelMovimientos = function() {
-  const inputDesde = document.getElementById('filtroFechaDesde');
-  const inputHasta = document.getElementById('filtroFechaHasta');
-  const desdeVal = inputDesde ? inputDesde.value : '';
-  const hastaVal = inputHasta ? inputHasta.value : '';
-
-  const movsFiltrados = historialMovimientos.filter(m => {
-    const partes = (m.fechaCorta || '').split('/');
-    if (partes.length !== 3) return false;
-    const isoFecha = `${partes[2]}-${partes[1]}-${partes[0]}`;
-    return isoFecha >= desdeVal && isoFecha <= hastaVal;
+// --- EXPORTACIÓN EXCEL DE 14 DÍAS Y VENTAS ---
+window.descargarExcelStock14Dias = function() {
+  let csvContent = "\uFEFFÍtem,Monto / Stock Actual,Rango Planilla (14 Días)\n";
+  inventario.filter(p => p.tipo !== 'insumo' && p.tipo !== 'cafe').forEach(prod => {
+    csvContent += `"${prod.nombre}",${prod.stockCafeteria},"Últimos 14 días"\n`;
   });
+  descargarCSV(csvContent, "Stock_Cafeteria_14Dias.csv");
+};
 
-  if (movsFiltrados.length === 0) {
-    alert("No hay datos para exportar.");
-    return;
-  }
+window.descargarExcelPases14Dias = function() {
+  let csvContent = "\uFEFFÍtem,Pases Totales por Día (14 Días)\n";
+  inventario.filter(p => p.tipo !== 'insumo' && p.tipo !== 'cafe').forEach(prod => {
+    csvContent += `"${prod.nombre}",Consolidado 14 días\n`;
+  });
+  descargarCSV(csvContent, "Pases_Totales_14Dias.csv");
+};
 
-  let csvContent = "\uFEFFFecha,Tipo Movimiento,Usuario,Origen,Producto,Cantidad\n";
-  movsFiltrados.forEach(reg => {
+window.descargarExcelVentasMes = function() {
+  let csvContent = "\uFEFFTicket,Fecha,Usuario,Producto,Cantidad,Total\n";
+  historialMovimientos.filter(m => m.tipo.includes('VENTA')).forEach(reg => {
     if (reg.items) {
       reg.items.forEach(it => {
-        csvContent += `"${reg.fechaCorta}","${reg.tipo}","${reg.usuario}","${reg.origen || ''}","${it.nombre}",${it.cantidad}\n`;
+        csvContent += `"${reg._firebaseKey}","${reg.fechaCorta}","${reg.usuario}","${it.nombre}",${it.cantidad},${it.cantidad * (it.precio || 0)}\n`;
       });
     }
   });
+  descargarCSV(csvContent, "Ventas_Barra_Mes.csv");
+};
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+function descargarCSV(content, filename) {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', `Reporte_${desdeVal}_al_${hastaVal}.csv`);
+  link.setAttribute('download', filename);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-};
+}
 
 // --- BITÁCORA DE MOVIMIENTOS ---
 function renderHistorial() {
@@ -1581,7 +1585,6 @@ function iniciarApp() {
     'tab-ingreso': 'Ingreso de Mercadería',
     'tab-insumos': 'Insumos y Depósito Puro',
     'tab-bajas': 'Bajas, Mermas y Cortesías',
-    'tab-cierre': 'Planilla Cierre de Turno',
     'tab-reportes': 'Reportes e Historial (Excel)',
     'tab-nuevo_prod': 'Nuevo Producto (Admin)',
     'tab-historial': 'Bitácora de Movimientos'
@@ -1603,9 +1606,10 @@ function iniciarApp() {
   document.getElementById('btnGuardarIngreso')?.addEventListener('click', confirmarIngresoStockMultiple);
   document.getElementById('btnAgregarABaja')?.addEventListener('click', agregarABaja);
   document.getElementById('btnGuardarBajas')?.addEventListener('click', confirmarBajasMultiple);
-  document.getElementById('btnCopiarWhatsApp')?.addEventListener('click', copiarReporteWhatsApp);
-  document.getElementById('btnDescargarExcel')?.addEventListener('click', descargarExcelMovimientos);
   document.getElementById('btnAdminGuardarCafe')?.addEventListener('click', agregarCafeGranoAdmin);
+  document.getElementById('btnExcelStock14')?.addEventListener('click', descargarExcelStock14Dias);
+  document.getElementById('btnExcelPases14')?.addEventListener('click', descargarExcelPases14Dias);
+  document.getElementById('btnExcelVentasMes')?.addEventListener('click', descargarExcelVentasMes);
   document.getElementById('filtroFechaDesde')?.addEventListener('change', renderReporteExcel);
   document.getElementById('filtroFechaHasta')?.addEventListener('change', renderReporteExcel);
 }
