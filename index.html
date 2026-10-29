@@ -22,7 +22,6 @@
 #tab-ingreso:checked ~ main #sec-ingreso { display: block; }
 #tab-insumos:checked ~ main #sec-insumos { display: block; }
 #tab-bajas:checked ~ main #sec-bajas { display: block; }
-#tab-cierre:checked ~ main #sec-cierre { display: block; }
 #tab-reportes:checked ~ main #sec-reportes { display: block; }
 #tab-nuevo_prod:checked ~ main #sec-nuevo_prod { display: block; }
 #tab-historial:checked ~ main #sec-historial { display: block; }
@@ -30,13 +29,13 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen pb-12">
 
-<!-- MODAL DE INICIO DE SESIÓN (3 USUARIOS) -->
+<!-- MODAL DE INICIO DE SESIÓN -->
 <div id="loginModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4">
         <div class="text-center">
             <span class="text-3xl">☕</span>
             <h2 class="text-lg font-bold text-slate-900 mt-2">Control de Depósito y Cafetería</h2>
-            <p class="text-xs text-slate-500">Seleccione su usuario para ingresar</p>
+            <p class="text-xs text-slate-500">Seleccione su usuario e ingrese su PIN</p>
         </div>
         <div class="space-y-3">
             <div>
@@ -48,8 +47,8 @@
                 </select>
             </div>
             <div id="divPinAdmin" class="space-y-1">
-                <label class="block text-xs font-medium text-slate-700 mb-1">PIN de Administrador</label>
-                <input type="password" id="loginPin" placeholder="Ingrese PIN (1234)" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
+                <label class="block text-xs font-medium text-slate-700 mb-1">PIN de Acceso</label>
+                <input type="password" id="loginPin" placeholder="Ingrese PIN" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none text-center tracking-widest font-bold" maxlength="4">
             </div>
             <button type="button" id="btnIngresarApp" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5 rounded-lg transition text-sm shadow active:scale-95">
                 Ingresar al Sistema
@@ -68,7 +67,6 @@
 <input type="radio" name="seccion" id="tab-ingreso" class="control-hidden">
 <input type="radio" name="seccion" id="tab-insumos" class="control-hidden">
 <input type="radio" name="seccion" id="tab-bajas" class="control-hidden">
-<input type="radio" name="seccion" id="tab-cierre" class="control-hidden">
 <input type="radio" name="seccion" id="tab-reportes" class="control-hidden">
 <input type="radio" name="seccion" id="tab-nuevo_prod" class="control-hidden">
 <input type="radio" name="seccion" id="tab-historial" class="control-hidden">
@@ -109,11 +107,9 @@
 <label for="tab-insumos" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
 <span>🧪</span> Insumos y Depósito Puro
 </label>
-<label for="tab-bajas" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
+<!-- Opción con ID para ocultarla dinámicamente al Administrador -->
+<label id="menuItemBajas" for="tab-bajas" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
 <span>🗑️</span> Bajas, Mermas y Cortesías
-</label>
-<label for="tab-cierre" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
-<span>📋</span> Planilla Cierre de Turno
 </label>
 <label for="tab-reportes" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
 <span>📊</span> Reportes e Historial (Excel)
@@ -128,7 +124,7 @@
 </div>
 
 <div class="border-t border-slate-800 pt-3 text-xs text-slate-500 text-center">
-Control de Depósito v7.6
+Control de Depósito v7.7
 </div>
 </aside>
 
@@ -148,7 +144,6 @@ Control de Depósito v7.6
 </div>
 </div>
 
-<!-- BADGE USUARIO Y BOTÓN DE CERRAR SESIÓN -->
 <div id="usuarioHeaderBadge" class="flex items-center gap-2"></div>
 </div>
 </header>
@@ -158,7 +153,6 @@ Control de Depósito v7.6
 
 <!-- 1. SECCIÓN: STOCK ACTUAL -->
 <section id="sec-stock" class="seccion-vista space-y-5">
-<!-- CONTADOR DE CAFÉ EN TIEMPO REAL (Independiente de Depósito y Vitrina) -->
 <div class="bg-gradient-to-r from-amber-900 to-amber-950 text-white p-4 rounded-xl shadow-md border border-amber-800 space-y-3">
 <div class="flex justify-between items-center">
 <h3 class="font-bold text-sm flex items-center gap-2 text-amber-200">
@@ -175,7 +169,7 @@ Control de Depósito v7.6
 <p id="cafeRestanteReal" class="text-lg font-black text-emerald-400 mt-0.5">0.00 g</p>
 </div>
 </div>
-<!-- Panel exclusivo para Administrador para agregar café -->
+<!-- Panel exclusivo para Administrador y Usuario 1 -->
 <div id="panelAdminAgregarCafe" class="pt-2 border-t border-amber-800/80 hidden flex gap-2">
 <input type="number" id="inputAdminCafeGramos" placeholder="Gramos a agregar" class="w-full px-3 py-1.5 bg-black/40 border border-amber-700 rounded-lg text-xs text-white placeholder-amber-400/50 focus:outline-none">
 <button type="button" id="btnAdminGuardarCafe" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-4 py-1.5 rounded-lg transition shrink-0 active:scale-95">
@@ -266,7 +260,7 @@ Control de Depósito v7.6
 </div>
 </section>
 
-<!-- 3. SECCIÓN: TRASPASO (DEPÓSITO -> CAFETERÍA) -->
+<!-- 3. SECCIÓN: TRASPASO -->
 <section id="sec-transferencia" class="seccion-vista">
 <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-lg border border-slate-800 space-y-4">
 <div class="border-b border-slate-800 pb-3">
@@ -306,7 +300,7 @@ Control de Depósito v7.6
 </div>
 </section>
 
-<!-- 4. SECCIÓN: VENTAS DE BARRA (BOTONES Y TICKETS INDIVIDUALES) -->
+<!-- 4. SECCIÓN: VENTAS DE BARRA -->
 <section id="sec-barra" class="seccion-vista">
 <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-lg border border-slate-800 space-y-4">
 <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
@@ -319,12 +313,8 @@ Control de Depósito v7.6
 <div id="badgeUsuarioBarra" class="text-xs bg-slate-800 px-3 py-1 rounded-full text-sky-300 font-medium"></div>
 </div>
 
-<!-- GESTOR DE BOTONES DE PRODUCTOS DE BARRA -->
-<div id="gridBotonesBarra" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-<!-- Generado dinámicamente -->
-</div>
+<div id="gridBotonesBarra" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
 
-<!-- TICKET ACTUAL DEL USUARIO -->
 <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ticket Actual de Venta</p>
 <div id="listaTicketActualBarra" class="space-y-2 max-h-48 overflow-y-auto">
@@ -341,16 +331,19 @@ Control de Depósito v7.6
 </div>
 </section>
 
-<!-- 5. SECCIÓN: RECIBOS / TICKETS DE VENTA -->
+<!-- 5. SECCIÓN: RECIBOS / TICKETS -->
 <section id="sec-tickets" class="seccion-vista space-y-4">
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-<div class="border-b border-slate-100 pb-3 flex justify-between items-center">
+<div class="border-b border-slate-100 pb-3 flex justify-between items-center flex-wrap gap-2">
 <div>
 <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
 <span>🧾</span> Recibos y Tickets Emitidos
 </h2>
-<p class="text-xs text-slate-500 mt-0.5">Historial de ventas de barra separadas por tickets individuales</p>
+<p class="text-xs text-slate-500 mt-0.5">Historial de ventas de barra</p>
 </div>
+<button type="button" id="btnExcelVentasMes" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow flex items-center gap-1 active:scale-95">
+📥 Excel Ventas (Mes / Día)
+</button>
 </div>
 
 <div id="contenedorRecibosTickets" class="space-y-3"></div>
@@ -437,14 +430,14 @@ No hay recibos o tickets registrados.
 </div>
 </section>
 
-<!-- 8. SECCIÓN: BAJAS, MERMAS Y CORTESÍAS -->
+<!-- 8. SECCIÓN: BAJAS, MERMAS Y CORTESÍAS (Actualizado con motivo 'Producción') -->
 <section id="sec-bajas" class="seccion-vista">
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
 <div class="border-b border-slate-100 pb-3">
 <h2 class="text-base font-bold text-rose-600 flex items-center gap-2">
 <span>🗑️</span> Registro de Bajas, Mermas y Cortesías
 </h2>
-<p class="text-xs text-slate-500">Descuenta stock de forma justificada sin afectar caja</p>
+<p class="text-xs text-slate-500">Descuenta stock de forma justificada</p>
 </div>
 
 <div class="space-y-3">
@@ -460,6 +453,7 @@ No hay recibos o tickets registrados.
 <label class="block text-xs font-medium text-slate-700 mb-1">Motivo</label>
 <select id="selectMotivoBaja" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
 <option value="Cortesía">Cortesía</option>
+<option value="Producción">Producción</option>
 <option value="Vencimiento">Vencimiento / Deterioro</option>
 <option value="Rotura">Rotura / Accidente</option>
 <option value="Consumo Personal">Consumo Personal / Staff</option>
@@ -499,64 +493,22 @@ No hay recibos o tickets registrados.
 </div>
 </section>
 
-<!-- 9. SECCIÓN: PLANILLA DE CIERRE DE TURNO -->
-<section id="sec-cierre" class="seccion-vista space-y-4">
-<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-<div class="border-b border-slate-100 pb-3 flex justify-between items-center flex-wrap gap-2">
-<div>
-<h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-<span>📋</span> Planilla de Cierre de Turno
-</h2>
-<p class="text-xs text-slate-500 mt-0.5">Genera el reporte exacto para copiar y pegar en WhatsApp</p>
-</div>
-<div class="flex items-center gap-2">
-<select id="selectTurnoReporte" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-medium bg-slate-50 focus:outline-none">
-<option value="Turno Mañana (08:00 - 15:00)">Turno Mañana (08:00 - 15:00)</option>
-<option value="Turno Tarde (15:00 - 20:00)">Turno Tarde (15:00 - 20:00)</option>
-<option value="Jornada Completa">Jornada Completa</option>
-</select>
-<button type="button" id="btnCopiarWhatsApp" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow flex items-center gap-1.5 active:scale-95">
-📱 Copiar para WhatsApp
-</button>
-</div>
-</div>
-
-<div class="overflow-x-auto">
-<table class="w-full text-left text-sm">
-<thead class="bg-slate-100 text-slate-500 text-xs uppercase border-b border-slate-200">
-<tr>
-<th class="py-3 px-3 font-semibold">Producto en Vitrina</th>
-<th class="py-3 px-3 text-center font-semibold">Stock Actual Cafetería</th>
-<th class="py-3 px-3 text-center font-semibold">Stock Depósito</th>
-</tr>
-</thead>
-<tbody id="tablaCierreTurno" class="divide-y divide-slate-100"></tbody>
-</table>
-</div>
-</div>
-</section>
-
-<!-- 10. SECCIÓN: REPORTES E HISTÓRICO CON EXPORTACIÓN A EXCEL -->
+<!-- 9. SECCIÓN: REPORTES E HISTÓRICO (Con nuevos botones de reportes por bloques de 14 días) -->
 <section id="sec-reportes" class="seccion-vista space-y-4">
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
 <div class="border-b border-slate-100 pb-3 flex justify-between items-center flex-wrap gap-3">
 <div>
 <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-<span>📊</span> Reportes Históricos y Excel
+<span>📊</span> Reportes Históricos y Excel (Rango 14 Días)
 </h2>
-<p class="text-xs text-slate-500 mt-0.5">Filtra movimientos por rango de fechas para auditorías</p>
+<p class="text-xs text-slate-500 mt-0.5">Exportación en planillas de 14 días consecutivos</p>
 </div>
 <div class="flex items-center gap-2 flex-wrap">
-<div class="flex items-center gap-1 text-xs">
-<span class="text-slate-500">Desde:</span>
-<input type="date" id="filtroFechaDesde" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none">
-</div>
-<div class="flex items-center gap-1 text-xs">
-<span class="text-slate-500">Hasta:</span>
-<input type="date" id="filtroFechaHasta" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none">
-</div>
-<button type="button" id="btnDescargarExcel" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow flex items-center gap-1 active:scale-95">
-📥 Exportar a Excel (CSV)
+<button type="button" id="btnExcelStock14" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow flex items-center gap-1 active:scale-95">
+📥 Excel Stock Diario (14 días)
+</button>
+<button type="button" id="btnExcelPases14" class="bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow flex items-center gap-1 active:scale-95">
+📥 Excel Pases Totales (14 días)
 </button>
 </div>
 </div>
@@ -578,7 +530,7 @@ No hay recibos o tickets registrados.
 </div>
 </section>
 
-<!-- 11. SECCIÓN: NUEVO PRODUCTO / INSUMO (ADMIN) -->
+<!-- 10. SECCIÓN: NUEVO PRODUCTO / INSUMO (ADMIN) -->
 <section id="sec-nuevo_prod" class="seccion-vista">
 <div id="content-nuevo_prod" class="space-y-4">
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
@@ -623,7 +575,7 @@ No hay recibos o tickets registrados.
 </div>
 </section>
 
-<!-- 12. SECCIÓN: BITÁCORA DE MOVIMIENTOS (TRASPASOS E INGRESOS POR DÍAS RETRÁCTILES) -->
+<!-- 11. SECCIÓN: BITÁCORA DE MOVIMIENTOS -->
 <section id="sec-historial" class="seccion-vista">
 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
 <div class="flex justify-between items-center border-b border-slate-100 pb-3">
