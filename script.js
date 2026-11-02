@@ -682,75 +682,88 @@ function confirmarTraspasoMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- VENTAS DE BARRA (LISTA VERTICAL EN PANTALLA) ---
-function renderListaVerticalBarra() {
-  const contenedor = document.getElementById('listaVerticalBarra');
-  if (!contenedor) return;
+// --- VENTAS DE BARRA (BOTONES DE CUADRÍCULA ORIGINALES) ---
+function renderBotonesBarra() {
+  const grid = document.getElementById('gridBotonesBarra');
+  if (!grid) return;
 
-  contenedor.innerHTML = '';
+  let containerPadre = grid.parentElement;
+  let buscadorInput = document.getElementById('inputBuscadorBarra');
+  if (!buscadorInput && containerPadre) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'mb-3 flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 shadow-inner';
+    wrapper.innerHTML = `
+      <span class="text-sm mr-2">🔍</span>
+      <input type="text" id="inputBuscadorBarra" placeholder="Buscar producto en barra..." class="bg-transparent text-xs text-white focus:outline-none w-full" value="${filtroBusquedaBarra}" />
+    `;
+    containerPadre.insertBefore(wrapper, grid);
+    
+    document.getElementById('inputBuscadorBarra').addEventListener('input', (e) => {
+      filtroBusquedaBarra = e.target.value.toLowerCase();
+      renderBotonesBarra();
+    });
+  }
+
+  grid.innerHTML = '';
   let productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
-  const filtro = document.getElementById('inputBuscadorBarra')?.value.toLowerCase() || '';
 
-  if (filtro) {
-    productosVisibles = productosVisibles.filter(p => p.nombre.toLowerCase().includes(filtro));
+  if (filtroBusquedaBarra) {
+    productosVisibles = productosVisibles.filter(p => p.nombre.toLowerCase().includes(filtroBusquedaBarra));
   }
 
   if (productosVisibles.length === 0) {
-    contenedor.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">No se encontraron productos.</p>`;
+    grid.innerHTML = `<p class="col-span-full text-xs text-slate-500 italic text-center py-4">No se encontraron productos.</p>`;
     return;
   }
 
   productosVisibles.forEach(prod => {
     const esCafe = prod.tipo === 'cafe';
-    const div = document.createElement('div');
-    div.className = 'flex justify-between items-center bg-slate-900 border border-slate-800 p-3 rounded-xl';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded-xl text-left flex flex-col justify-between transition active:scale-95 shadow';
     
-    div.innerHTML = `
+    let infoStockHtml = esCafe 
+      ? `<span class="text-[10px] text-amber-400 font-semibold">⚡ Café (${prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF}g)</span>` 
+      : `<span class="text-[10px] text-sky-400">Stock: ${prod.stockCafeteria}</span>`;
+
+    btn.innerHTML = `
       <div>
-        <span class="font-bold text-slate-100 text-xs block">${prod.nombre}</span>
-        <span class="text-[10px] ${esCafe ? 'text-amber-400' : 'text-sky-400'}">${esCafe ? `Café (${prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF}g)` : `Stock Cafetería: ${prod.stockCafeteria}`}</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <input type="number" id="inputVenta_${prod.id}" min="0" value="0" class="w-16 bg-slate-950 border border-slate-700 text-white text-xs text-center rounded-lg px-2 py-1.5 focus:outline-none" />
-        <button type="button" onclick="agregarVentaVertical(${prod.id})" class="bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition active:scale-95">➕</button>
+        <span class="font-bold text-slate-100 text-xs block truncate">${prod.nombre}</span>
+        ${infoStockHtml}
       </div>
     `;
-    contenedor.appendChild(div);
+    btn.addEventListener('click', () => agregarItemTicketBarra(prod.id));
+    grid.appendChild(btn);
   });
 }
 
-window.agregarVentaVertical = function(idProd) {
-  const inputCant = document.getElementById(`inputVenta_${idProd}`);
-  const cantidad = parseInt(inputCant?.value) || 0;
-  if (cantidad <= 0) { alert("Ingresa una cantidad válida mayor a 0."); return; }
-
+function agregarItemTicketBarra(idProd) {
   const prod = inventario.find(p => p.id === idProd);
   if (!prod) return;
 
   const existente = listaTicketBarraActual.find(it => it.id === idProd);
   const cantActual = existente ? existente.cantidad : 0;
 
-  if (prod.tipo !== 'cafe' && (cantActual + cantidad > prod.stockCafeteria)) {
-    alert(`Stock insuficiente en Cafetería para "${prod.nombre}". Stock disponible: ${prod.stockCafeteria}`);
+  if (prod.tipo !== 'cafe' && (cantActual + 1 > prod.stockCafeteria)) {
+    alert(`Stock insuficiente en Cafetería para "${prod.nombre}".`);
     return;
   }
 
   if (existente) {
-    existente.cantidad += cantidad;
+    existente.cantidad += 1;
   } else {
-    listaTicketBarraActual.push({
-      id: prod.id,
-      nombre: prod.nombre,
-      cantidad: cantidad,
-      precio: prod.precio || 0,
-      tipo: prod.tipo,
-      gramosPorTaza: prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF
+    listaTicketBarraActual.push({ 
+      id: prod.id, 
+      nombre: prod.nombre, 
+      cantidad: 1, 
+      precio: prod.precio || 0, 
+      tipo: prod.tipo, 
+      gramosPorTaza: prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF 
     });
   }
 
-  if (inputCant) inputCant.value = 0;
   renderTicketActualBarra();
-};
+}
 
 window.quitarItemTicketBarra = function(idx) {
   listaTicketBarraActual.splice(idx, 1);
@@ -761,9 +774,10 @@ function renderTicketActualBarra() {
   const container = document.getElementById('listaTicketActualBarra');
   const btnEmitir = document.getElementById('btnEmitirTicketVenta');
   const totalMontoEl = document.getElementById('ticketTotalMonto');
-  if (!container) return;
 
+  if (!container) return;
   container.innerHTML = '';
+
   if (listaTicketBarraActual.length === 0) {
     container.innerHTML = `<p class="text-xs text-slate-500 text-center py-2">No hay ítems seleccionados.</p>`;
     if (btnEmitir) btnEmitir.disabled = true;
@@ -791,18 +805,34 @@ function renderTicketActualBarra() {
     `;
     container.appendChild(div);
   });
+
   if (totalMontoEl) totalMontoEl.textContent = `${totalMonto.toFixed(2)} BOB`;
 }
 
 function emitirTicketVenta() {
   if (listaTicketBarraActual.length === 0) return;
+
+  for (let item of listaTicketBarraActual) {
+    if (item.tipo !== 'cafe') {
+      const prod = inventario.find(p => p.id === item.id);
+      if (!prod || prod.stockCafeteria < item.cantidad) {
+        alert(`Stock insuficiente para "${item.nombre}" en cafetería.`);
+        return;
+      }
+    }
+  }
+
   let gramosConsumidosTotal = 0;
 
   listaTicketBarraActual.forEach(item => {
     const prod = inventario.find(p => p.id === item.id);
     if (prod) {
-      if (prod.tipo === 'cafe') gramosConsumidosTotal += item.cantidad * (prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF);
-      else prod.stockCafeteria = Math.max(0, prod.stockCafeteria - item.cantidad);
+      if (prod.tipo === 'cafe') {
+        const gramosItem = item.cantidad * (prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF);
+        gramosConsumidosTotal += gramosItem;
+      } else {
+        prod.stockCafeteria = Math.max(0, prod.stockCafeteria - item.cantidad);
+      }
     }
   });
 
@@ -816,8 +846,8 @@ function emitirTicketVenta() {
 
   listaTicketBarraActual = [];
   renderTicketActualBarra();
-  renderListaVerticalBarra();
-  alert("✅ Ticket emitido correctamente.");
+  renderBotonesBarra();
+  alert("✅ Ticket emitido y stock actualizado correctamente.");
   irASeccion('tab-tickets');
 }
 
@@ -1196,7 +1226,7 @@ function renderTodo() {
   renderInventario();
   renderInsumos();
   renderSelectores();
-  renderListaVerticalBarra();
+  renderBotonesBarra();
   renderTicketActualBarra();
   renderRecibosTickets();
   renderReporteExcel();
@@ -1620,7 +1650,6 @@ function iniciarApp() {
     });
   });
 
-  document.getElementById('inputBuscadorBarra')?.addEventListener('input', renderListaVerticalBarra);
   document.getElementById('btnGuardarNuevoProd')?.addEventListener('click', guardarProductoNuevo);
   document.getElementById('btnAgregarATraspaso')?.addEventListener('click', agregarATraspaso);
   document.getElementById('btnConfirmarTraspaso')?.addEventListener('click', confirmarTraspasoMultiple);
