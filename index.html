@@ -6,6 +6,8 @@
 <title>Control de Depósito y Cafetería</title>
 <!-- Tailwind CSS CDN -->
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- SheetJS para exportación de Excel con múltiples pestañas -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 .control-hidden { display: none; }
 #menuBackdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); z-index: 40; }
@@ -107,7 +109,6 @@
 <label for="tab-insumos" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
 <span>🧪</span> Insumos y Depósito Puro
 </label>
-<!-- Opción con ID para ocultarla dinámicamente al Administrador -->
 <label id="menuItemBajas" for="tab-bajas" class="w-full block text-left px-4 py-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-sm transition cursor-pointer">
 <span>🗑️</span> Bajas, Mermas y Cortesías
 </label>
@@ -124,7 +125,7 @@
 </div>
 
 <div class="border-t border-slate-800 pt-3 text-xs text-slate-500 text-center">
-Control de Depósito v7.7
+Control de Depósito v7.8
 </div>
 </aside>
 
@@ -169,7 +170,6 @@ Control de Depósito v7.7
 <p id="cafeRestanteReal" class="text-lg font-black text-emerald-400 mt-0.5">0.00 g</p>
 </div>
 </div>
-<!-- Panel exclusivo para Administrador y Usuario 1 -->
 <div id="panelAdminAgregarCafe" class="pt-2 border-t border-amber-800/80 hidden flex gap-2">
 <input type="number" id="inputAdminCafeGramos" placeholder="Gramos a agregar" class="w-full px-3 py-1.5 bg-black/40 border border-amber-700 rounded-lg text-xs text-white placeholder-amber-400/50 focus:outline-none">
 <button type="button" id="btnAdminGuardarCafe" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-4 py-1.5 rounded-lg transition shrink-0 active:scale-95">
@@ -300,21 +300,29 @@ Control de Depósito v7.7
 </div>
 </section>
 
-<!-- 4. SECCIÓN: VENTAS DE BARRA -->
+<!-- 4. SECCIÓN: VENTAS DE BARRA (LISTA VERTICAL) -->
 <section id="sec-barra" class="seccion-vista">
 <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-lg border border-slate-800 space-y-4">
 <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
 <div>
 <h2 class="text-base font-bold text-sky-400 flex items-center gap-2">
-<span>☕</span> Ventas de Barra & Botones de Consumo
+<span>☕</span> Ventas de Barra & Registro Vertical
 </h2>
-<p class="text-xs text-slate-400 mt-0.5">Presiona los botones para aumentar o reducir cantidades</p>
+<p class="text-xs text-slate-400 mt-0.5">Selecciona la cantidad vendida de cada producto</p>
 </div>
 <div id="badgeUsuarioBarra" class="text-xs bg-slate-800 px-3 py-1 rounded-full text-sky-300 font-medium"></div>
 </div>
 
-<div id="gridBotonesBarra" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+<!-- LISTA VERTICAL DE PRODUCTOS DE BARRA -->
+<div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+<div class="flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 shadow-inner mb-3">
+<span class="text-sm mr-2">🔍</span>
+<input type="text" id="inputBuscadorBarra" placeholder="Buscar producto..." class="bg-transparent text-xs text-white focus:outline-none w-full" />
+</div>
+<div id="listaVerticalBarra" class="space-y-2 max-h-96 overflow-y-auto pr-1"></div>
+</div>
 
+<!-- TICKET ACTUAL DEL USUARIO -->
 <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ticket Actual de Venta</p>
 <div id="listaTicketActualBarra" class="space-y-2 max-h-48 overflow-y-auto">
@@ -341,9 +349,6 @@ Control de Depósito v7.7
 </h2>
 <p class="text-xs text-slate-500 mt-0.5">Historial de ventas de barra</p>
 </div>
-<button type="button" id="btnExcelVentasMes" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow flex items-center gap-1 active:scale-95">
-📥 Excel Ventas (Mes / Día)
-</button>
 </div>
 
 <div id="contenedorRecibosTickets" class="space-y-3"></div>
@@ -430,7 +435,7 @@ No hay recibos o tickets registrados.
 </div>
 </section>
 
-<!-- 8. SECCIÓN: BAJAS, MERMAS Y CORTESÍAS (Actualizado con motivo 'Producción') -->
+<!-- 8. SECCIÓN: BAJAS, MERMAS Y CORTESÍAS -->
 <section id="sec-bajas" class="seccion-vista">
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
 <div class="border-b border-slate-100 pb-3">
@@ -493,22 +498,27 @@ No hay recibos o tickets registrados.
 </div>
 </section>
 
-<!-- 9. SECCIÓN: REPORTES E HISTÓRICO (Con nuevos botones de reportes por bloques de 14 días) -->
+<!-- 9. SECCIÓN: REPORTES E HISTÓRICO (EXCEL CON 3 PESTAÑAS) -->
 <section id="sec-reportes" class="seccion-vista space-y-4">
 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
 <div class="border-b border-slate-100 pb-3 flex justify-between items-center flex-wrap gap-3">
 <div>
 <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-<span>📊</span> Reportes Históricos y Excel (Rango 14 Días)
+<span>📊</span> Reportes en Excel (3 Pestañas Consolidadas)
 </h2>
-<p class="text-xs text-slate-500 mt-0.5">Exportación en planillas de 14 días consecutivos</p>
+<p class="text-xs text-slate-500 mt-0.5">Genera el archivo completo con Traspasos, Stock Diario y Ventas</p>
 </div>
 <div class="flex items-center gap-2 flex-wrap">
-<button type="button" id="btnExcelStock14" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow flex items-center gap-1 active:scale-95">
-📥 Excel Stock Diario (14 días)
-</button>
-<button type="button" id="btnExcelPases14" class="bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition shadow flex items-center gap-1 active:scale-95">
-📥 Excel Pases Totales (14 días)
+<div class="flex items-center gap-1 text-xs">
+<span class="text-slate-500">Desde:</span>
+<input type="date" id="filtroFechaDesde" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none">
+</div>
+<div class="flex items-center gap-1 text-xs">
+<span class="text-slate-500">Hasta:</span>
+<input type="date" id="filtroFechaHasta" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none">
+</div>
+<button type="button" id="btnGenerarExcel3Hojas" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition shadow flex items-center gap-1.5 active:scale-95">
+📥 Descargar Excel Completo (3 Hojas)
 </button>
 </div>
 </div>
@@ -594,7 +604,6 @@ Aún no hay registros en la bitácora.
 
 </main>
 
-<!-- Cargar el script JS -->
 <script type="module" src="script.js"></script>
 </body>
 </html>
