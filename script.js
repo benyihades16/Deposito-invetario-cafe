@@ -682,27 +682,10 @@ function confirmarTraspasoMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- VENTAS DE BARRA (BOTONES DE CUADRÍCULA ORIGINALES) ---
+// --- VENTAS DE BARRA (TUS BOTONES ORIGINALES) ---
 function renderBotonesBarra() {
   const grid = document.getElementById('gridBotonesBarra');
   if (!grid) return;
-
-  let containerPadre = grid.parentElement;
-  let buscadorInput = document.getElementById('inputBuscadorBarra');
-  if (!buscadorInput && containerPadre) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'mb-3 flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 shadow-inner';
-    wrapper.innerHTML = `
-      <span class="text-sm mr-2">🔍</span>
-      <input type="text" id="inputBuscadorBarra" placeholder="Buscar producto en barra..." class="bg-transparent text-xs text-white focus:outline-none w-full" value="${filtroBusquedaBarra}" />
-    `;
-    containerPadre.insertBefore(wrapper, grid);
-    
-    document.getElementById('inputBuscadorBarra').addEventListener('input', (e) => {
-      filtroBusquedaBarra = e.target.value.toLowerCase();
-      renderBotonesBarra();
-    });
-  }
 
   grid.innerHTML = '';
   let productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
@@ -720,7 +703,7 @@ function renderBotonesBarra() {
     const esCafe = prod.tipo === 'cafe';
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded-xl text-left flex flex-col justify-between transition active:scale-95 shadow';
+    btn.className = 'bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2.5 rounded-xl text-left flex flex-col justify-between transition active:scale-95 shadow';
     
     let infoStockHtml = esCafe 
       ? `<span class="text-[10px] text-amber-400 font-semibold">⚡ Café (${prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF}g)</span>` 
@@ -1129,104 +1112,12 @@ window.reiniciarStockTodo = function() {
   }
 };
 
-// --- EXPORTACIÓN EXCEL PROFESIONAL CON 3 PESTAÑAS (TRASPASOS, STOCK CAFETERÍA, VENTAS) ---
-window.generarExcelTresHojas = function() {
-  const inputDesde = document.getElementById('filtroFechaDesde');
-  const inputHasta = document.getElementById('filtroFechaHasta');
-  const desdeVal = inputDesde ? inputDesde.value : '';
-  const hastaVal = inputHasta ? inputHasta.value : '';
-
-  const movsFiltrados = historialMovimientos.filter(m => {
-    const partes = (m.fechaCorta || '').split('/');
-    if (partes.length !== 3) return false;
-    const isoFecha = `${partes[2]}-${partes[1]}-${partes[0]}`;
-    if (desdeVal && hastaVal) return isoFecha >= desdeVal && isoFecha <= hastaVal;
-    return true;
-  });
-
-  // 1. PESTAÑA 1: TRASPASOS (Consolidado por ítem)
-  const traspasosMap = {};
-  inventario.filter(p => p.tipo !== 'insumo' && p.tipo !== 'cafe').forEach(p => {
-    traspasosMap[p.nombre] = { stockInicial: p.stockDeposito, totalTraspasado: 0 };
-  });
-
-  movsFiltrados.forEach(m => {
-    if (m.tipo === 'TRASPASO' && m.items) {
-      m.items.forEach(it => {
-        if (!traspasosMap[it.nombre]) traspasosMap[it.nombre] = { stockInicial: 0, totalTraspasado: 0 };
-        traspasosMap[it.nombre].totalTraspasado += it.cantidad;
-      });
-    }
-  });
-
-  const wsTraspasosData = [
-    ["PLANILLA DE TRASPASOS (DEPÓSITO A CAFETERÍA)"],
-    [`PERIODO: ${desdeVal || 'Inicio'} al ${hastaVal || 'Hoy'}`],
-    [],
-    ["ÍTEM", "STOCK INICIAL", "TOTAL TRASPASADO"]
-  ];
-
-  Object.keys(traspasosMap).forEach(nombre => {
-    wsTraspasosData.push([nombre, traspasosMap[nombre].stockInicial, traspasosMap[nombre].totalTraspasado]);
-  });
-
-  // 2. PESTAÑA 2: STOCK DIARIO CAFETERÍA (Fotografía de saldos actuales)
-  const wsStockCafData = [
-    ["STOCK DIARIO CAFETERÍA (CIERRE ACTUAL)"],
-    [`FECHA: ${getFechaHoy()}`],
-    [],
-    ["ÍTEM", "STOCK ACTUAL EN CAFETERÍA", "ESTADO"]
-  ];
-
-  inventario.filter(p => p.tipo !== 'insumo' && p.tipo !== 'cafe').forEach(p => {
-    wsStockCafData.push([p.nombre, p.stockCafeteria, p.stockCafeteria > 0 ? "Disponible" : "Agotado"]);
-  });
-
-  // 3. PESTAÑA 3: VENTAS DE BARRA (Consolidado real sin repetir filas)
-  const ventasMap = {};
-  movsFiltrados.forEach(m => {
-    if ((m.tipo === 'VENTA_BARRA' || m.tipo.includes('VENTA')) && m.items) {
-      m.items.forEach(it => {
-        if (!ventasMap[it.nombre]) {
-          ventasMap[it.nombre] = { cantidad: 0, ingresos: 0 };
-        }
-        ventasMap[it.nombre].cantidad += it.cantidad;
-        ventasMap[it.nombre].ingresos += it.cantidad * (it.precio || 0);
-      });
-    }
-  });
-
-  const wsVentasData = [
-    ["CONSOLIDADO DE VENTAS DE BARRA"],
-    [`PERIODO: ${desdeVal || 'Inicio'} al ${hastaVal || 'Hoy'}`],
-    [],
-    ["PRODUCTO / ÍTEM", "CANTIDAD VENDIDA (UNIDADES)", "TOTAL INGRESOS (BOB)"]
-  ];
-
-  Object.keys(ventasMap).forEach(nombre => {
-    wsVentasData.push([nombre, ventasMap[nombre].cantidad, ventasMap[nombre].ingresos.toFixed(2)]);
-  });
-
-  // Crear libro de Excel con SheetJS
-  const wb = XLSX.utils.book_new();
-  const ws1 = XLSX.utils.aoa_to_sheet(wsTraspasosData);
-  const ws2 = XLSX.utils.aoa_to_sheet(wsStockCafData);
-  const ws3 = XLSX.utils.aoa_to_sheet(wsVentasData);
-
-  XLSX.utils.book_append_sheet(wb, ws1, "Traspasos");
-  XLSX.utils.book_append_sheet(wb, ws2, "Stock Diario Cafetería");
-  XLSX.utils.book_append_sheet(wb, ws3, "Ventas de Barra");
-
-  XLSX.writeFile(wb, `Reporte_Consolidado_Cafeteria_${desdeVal || 'General'}.xlsx`);
-  alert("✅ ¡Excel con 3 pestañas descargado con éxito!");
-};
-
 // --- RENDER GENERAL ---
 function renderTodo() {
   renderInventario();
   renderInsumos();
   renderSelectores();
-  renderBotonesBarra(); // <--- ¡AQUÍ ESTABA EL DETALLE, RESTAURADO!
+  renderBotonesBarra();
   renderTicketActualBarra();
   renderRecibosTickets();
   renderReporteExcel();
@@ -1445,7 +1336,7 @@ function renderListaIngreso() {
   let totalUnidades = 0;
 
   listaIngresoActual.forEach((item, idx) => {
-    totalUnunits += item.cantidad;
+    totalUnidades += item.cantidad;
     const div = document.createElement('div');
     div.className = 'flex justify-between items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs';
     div.innerHTML = `
@@ -1536,6 +1427,46 @@ function renderReporteExcel() {
     `;
     tbody.appendChild(tr);
   });
+}
+
+// --- EXPORTACIÓN EXCEL DE 14 DÍAS Y VENTAS ---
+window.descargarExcelStock14Dias = function() {
+  let csvContent = "\uFEFFÍtem,Monto / Stock Actual,Rango Planilla (14 Días)\n";
+  inventario.filter(p => p.tipo !== 'insumo' && p.tipo !== 'cafe').forEach(prod => {
+    csvContent += `"${prod.nombre}",${prod.stockCafeteria},"Últimos 14 días"\n`;
+  });
+  descargarCSV(csvContent, "Stock_Cafeteria_14Dias.csv");
+};
+
+window.descargarExcelPases14Dias = function() {
+  let csvContent = "\uFEFFÍtem,Pases Totales por Día (14 Días)\n";
+  inventario.filter(p => p.tipo !== 'insumo' && p.tipo !== 'cafe').forEach(prod => {
+    csvContent += `"${prod.nombre}",Consolidado 14 días\n`;
+  });
+  descargarCSV(csvContent, "Pases_Totales_14Dias.csv");
+};
+
+window.descargarExcelVentasMes = function() {
+  let csvContent = "\uFEFFTicket,Fecha,Usuario,Producto,Cantidad,Total\n";
+  historialMovimientos.filter(m => m.tipo.includes('VENTA')).forEach(reg => {
+    if (reg.items) {
+      reg.items.forEach(it => {
+        csvContent += `"${reg._firebaseKey}","${reg.fechaCorta}","${reg.usuario}","${it.nombre}",${it.cantidad},${it.cantidad * (it.precio || 0)}\n`;
+      });
+    }
+  });
+  descargarCSV(csvContent, "Ventas_Barra_Mes.csv");
+};
+
+function descargarCSV(content, filename) {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 // --- BITÁCORA DE MOVIMIENTOS ---
@@ -1659,7 +1590,9 @@ function iniciarApp() {
   document.getElementById('btnAgregarABaja')?.addEventListener('click', agregarABaja);
   document.getElementById('btnGuardarBajas')?.addEventListener('click', confirmarBajasMultiple);
   document.getElementById('btnAdminGuardarCafe')?.addEventListener('click', agregarCafeGranoAdmin);
-  document.getElementById('btnGenerarExcel3Hojas')?.addEventListener('click', generarExcelTresHojas);
+  document.getElementById('btnExcelStock14')?.addEventListener('click', descargarExcelStock14Dias);
+  document.getElementById('btnExcelPases14')?.addEventListener('click', descargarExcelPases14Dias);
+  document.getElementById('btnExcelVentasMes')?.addEventListener('click', descargarExcelVentasMes);
   document.getElementById('filtroFechaDesde')?.addEventListener('change', renderReporteExcel);
   document.getElementById('filtroFechaHasta')?.addEventListener('change', renderReporteExcel);
 }
