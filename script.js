@@ -103,7 +103,7 @@ onValue(cafeGranoRef, (snapshot) => {
   renderControlCafe();
 });
 
-// --- GESTIÓN DE PERFILES Y SESIÓN ---
+// --- GESTIÓN DE PERFILES Y SESIÓN (Sincronizado con HTML original) ---
 
 function verificarSesion() {
   const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
@@ -119,71 +119,24 @@ function verificarSesion() {
 }
 
 function configurarModalLogin() {
-  const modalLogin = document.getElementById('loginModal');
-  if (!modalLogin) return;
+  const btnIngresar = document.getElementById('btnIngresarApp');
+  const selectUsuario = document.getElementById('loginUsuario');
+  const pinInput = document.getElementById('loginPin');
+  const divPinAdmin = document.getElementById('divPinAdmin');
 
-  const modalContentBox = modalLogin.querySelector('.bg-white') || modalLogin.firstElementChild;
-  if (!modalContentBox) return;
+  if (!btnIngresar) return;
 
-  modalContentBox.innerHTML = `
-    <div class="flex flex-col items-center text-center space-y-4">
-      <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-2xl shadow-inner">☕</div>
-      <div>
-        <h2 class="text-base font-bold text-slate-900">Control de Depósito y Cafetería</h2>
-        <p class="text-xs text-slate-500">Selecciona tu perfil e ingresa tu PIN</p>
-      </div>
-
-      <div id="gridPerfiles" class="grid grid-cols-3 gap-2 w-full my-2">
-        <button type="button" data-usuario="Administrador" class="perfil-card flex flex-col items-center justify-center p-3 rounded-xl border-2 border-slate-200 hover:border-amber-500 hover:bg-amber-50/50 transition cursor-pointer group">
-          <span class="text-xl mb-1">👑</span>
-          <span class="font-bold text-[11px] text-slate-800">Administrador</span>
-        </button>
-        <button type="button" data-usuario="Usuario 1" class="perfil-card flex flex-col items-center justify-center p-3 rounded-xl border-2 border-slate-200 hover:border-sky-500 hover:bg-sky-50/50 transition cursor-pointer group">
-          <span class="text-xl mb-1">👤</span>
-          <span class="font-bold text-[11px] text-slate-800">Usuario 1</span>
-        </button>
-        <button type="button" data-usuario="Usuario 2" class="perfil-card flex flex-col items-center justify-center p-3 rounded-xl border-2 border-slate-200 hover:border-sky-500 hover:bg-sky-50/50 transition cursor-pointer group">
-          <span class="text-xl mb-1">👤</span>
-          <span class="font-bold text-[11px] text-slate-800">Usuario 2</span>
-        </button>
-      </div>
-
-      <div id="divPinContainer" class="w-full space-y-1.5 text-left">
-        <label class="text-[11px] font-semibold text-slate-600 block">PIN de Acceso:</label>
-        <input type="password" id="loginPinInput" placeholder="Ingrese PIN" class="w-full bg-slate-50 border border-slate-300 text-xs text-slate-900 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 text-center tracking-widest font-bold" maxlength="4" />
-      </div>
-
-      <button id="btnConfirmarIngresoPerfil" type="button" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 rounded-xl transition shadow-md hidden">
-        Ingresar al Sistema
-      </button>
-    </div>
-  `;
-
-  let usuarioSeleccionado = null;
-  const cards = modalContentBox.querySelectorAll('.perfil-card');
-  const pinInput = document.getElementById('loginPinInput');
-  const btnConfirmar = document.getElementById('btnConfirmarIngresoPerfil');
-
-  cards.forEach(card => {
-    card.addEventListener('click', () => {
-      cards.forEach(c => c.classList.remove('border-amber-500', 'bg-amber-50', 'border-sky-500', 'bg-sky-50', 'ring-2', 'ring-amber-200', 'ring-sky-200'));
-      
-      usuarioSeleccionado = card.getAttribute('data-usuario');
-      card.classList.add('border-sky-500', 'bg-sky-50', 'ring-2', 'ring-sky-200');
-      btnConfirmar.classList.remove('hidden');
-      if (pinInput) {
-        pinInput.value = '';
-        pinInput.focus();
-      }
-    });
+  // Ocultar PIN si seleccionan usuario sin pin o manejarlo según corresponda
+  selectUsuario?.addEventListener('change', () => {
+    const val = selectUsuario.value.toLowerCase();
+    if (divPinAdmin) {
+      divPinAdmin.style.display = 'block';
+    }
+    pinInput?.focus();
   });
 
-  btnConfirmar.addEventListener('click', () => {
-    if (!usuarioSeleccionado) {
-      alert("Selecciona un perfil primero.");
-      return;
-    }
-
+  btnIngresar.addEventListener('click', () => {
+    const usuarioSeleccionado = selectUsuario ? selectUsuario.value : 'Administrador';
     const pinVal = pinInput ? pinInput.value.trim() : '';
     const pinCorrecto = PINS_USUARIOS[usuarioSeleccionado.toLowerCase()];
 
@@ -204,7 +157,7 @@ function configurarModalLogin() {
 
   pinInput?.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
-      btnConfirmar.click();
+      btnIngresar.click();
     }
   });
 }
@@ -1395,11 +1348,8 @@ function renderReporteExcel() {
   const inputHasta = document.getElementById('filtroFechaHasta');
 
   const hoyIso = new Date().toISOString().split('T')[0];
-  if (inputDesde && !inputDesde.value) inputDesde.value = hoyIso;
-  if (inputHasta && !inputHasta.value) inputHasta.value = hoyIso;
-
-  const desdeVal = inputDesde ? inputDesde.value : hoyIso;
-  const hastaVal = inputHasta ? inputHasta.value : hoyIso;
+  const desdeVal = inputDesde ? (inputDesde.value || hoyIso) : hoyIso;
+  const hastaVal = inputHasta ? (inputHasta.value || hoyIso) : hoyIso;
 
   const movsFiltrados = historialMovimientos.filter(m => {
     const partes = (m.fechaCorta || '').split('/');
@@ -1593,8 +1543,6 @@ function iniciarApp() {
   document.getElementById('btnExcelStock14')?.addEventListener('click', descargarExcelStock14Dias);
   document.getElementById('btnExcelPases14')?.addEventListener('click', descargarExcelPases14Dias);
   document.getElementById('btnExcelVentasMes')?.addEventListener('click', descargarExcelVentasMes);
-  document.getElementById('filtroFechaDesde')?.addEventListener('change', renderReporteExcel);
-  document.getElementById('filtroFechaHasta')?.addEventListener('change', renderReporteExcel);
 }
 
 window.addEventListener('DOMContentLoaded', iniciarApp);
