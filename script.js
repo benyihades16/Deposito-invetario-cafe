@@ -1226,7 +1226,7 @@ function renderTodo() {
   renderInventario();
   renderInsumos();
   renderSelectores();
-  renderBotonesBarra();
+  renderBotonesBarra(); // <--- ¡AQUÍ ESTABA EL DETALLE, RESTAURADO!
   renderTicketActualBarra();
   renderRecibosTickets();
   renderReporteExcel();
@@ -1445,7 +1445,7 @@ function renderListaIngreso() {
   let totalUnidades = 0;
 
   listaIngresoActual.forEach((item, idx) => {
-    totalUnidades += item.cantidad;
+    totalUnunits += item.cantidad;
     const div = document.createElement('div');
     div.className = 'flex justify-between items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs';
     div.innerHTML = `
