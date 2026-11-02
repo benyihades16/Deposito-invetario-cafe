@@ -38,7 +38,6 @@ let listaTicketBarraActual = [];
 let filtroBusquedaBarra = ''; 
 let counterMovimiento = 0; 
 
-// Helper para formato de fecha único y estándar (DD/MM/YYYY)
 function getFechaHoy() {
   const d = new Date();
   const dia = String(d.getDate()).padStart(2, '0');
@@ -47,7 +46,6 @@ function getFechaHoy() {
   return `${dia}/${mes}/${anio}`;
 }
 
-// FUNCIÓN DE ORDENAMIENTO: Leches primero, luego A-Z
 function ordenarInventario(lista) {
   return [...lista].sort((a, b) => {
     const aEsLeche = a.nombre.toLowerCase().includes('leche');
@@ -67,7 +65,7 @@ onValue(inventoryRef, (snapshot) => {
     const rawList = Array.isArray(data) ? data : Object.values(data);
     inventario = rawList.map(item => ({
       id: item.id || Date.now(),
-      nombre: item.nombre || 'Insumo',
+      nombre: item.nombre || 'Producto',
       tipo: item.tipo || 'producto',
       stockDeposito: item.stockDeposito !== undefined ? item.stockDeposito : (item.stock || 0),
       stockCafeteria: item.stockCafeteria !== undefined ? item.stockCafeteria : 0,
@@ -103,7 +101,7 @@ onValue(cafeGranoRef, (snapshot) => {
   renderControlCafe();
 });
 
-// --- GESTIÓN DE PERFILES Y SESIÓN (Sincronizado con HTML original) ---
+// --- GESTIÓN DE PERFILES Y SESIÓN ---
 
 function verificarSesion() {
   const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
@@ -122,18 +120,8 @@ function configurarModalLogin() {
   const btnIngresar = document.getElementById('btnIngresarApp');
   const selectUsuario = document.getElementById('loginUsuario');
   const pinInput = document.getElementById('loginPin');
-  const divPinAdmin = document.getElementById('divPinAdmin');
 
   if (!btnIngresar) return;
-
-  // Ocultar PIN si seleccionan usuario sin pin o manejarlo según corresponda
-  selectUsuario?.addEventListener('change', () => {
-    const val = selectUsuario.value.toLowerCase();
-    if (divPinAdmin) {
-      divPinAdmin.style.display = 'block';
-    }
-    pinInput?.focus();
-  });
 
   btnIngresar.addEventListener('click', () => {
     const usuarioSeleccionado = selectUsuario ? selectUsuario.value : 'Administrador';
@@ -176,7 +164,6 @@ function aplicarPermisosPerfil(nombreUsuario) {
     if (labelTab) labelTab.style.display = esAdmin ? '' : 'none';
   }
 
-  // Ocultar Bajas y Mermas unicamente al Administrador
   if (menuItemBajas) {
     menuItemBajas.style.display = esAdmin ? 'none' : 'block';
   }
@@ -186,7 +173,6 @@ function aplicarPermisosPerfil(nombreUsuario) {
     else el.classList.add('hidden');
   });
 
-  // Habilitar agregar y restablecer café solo para Administrador y Usuario 1
   if (panelAdminCafe) {
     if (esAdmin || esUsuario1) panelAdminCafe.classList.remove('hidden');
     else panelAdminCafe.classList.add('hidden');
@@ -363,11 +349,10 @@ window.eliminarProducto = function(id, nombre) {
   }
 };
 
-// --- VALIDACIÓN DE ANTIGÜEDAD DE 2 DÍAS PARA ANULACIÓN ---
 function validarAntiguedadAnulacion(fechaCortaRegistro) {
   const usuarioLogueado = sessionStorage.getItem('usuarioLogueado');
   const esAdmin = usuarioLogueado?.toLowerCase() === 'administrador';
-  if (esAdmin) return true; // Administrador puede anular cualquier fecha
+  if (esAdmin) return true;
 
   const partes = fechaCortaRegistro.split('/');
   if (partes.length !== 3) return false;
@@ -385,7 +370,6 @@ function validarAntiguedadAnulacion(fechaCortaRegistro) {
   return true;
 }
 
-// --- REGISTRO DE MOVIMIENTOS Y ACOPLAMIENTO POR TURNO ---
 function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   const usuario = sessionStorage.getItem('usuarioLogueado') || 'Usuario';
   const ahora = new Date();
@@ -447,7 +431,6 @@ function registrarMovimientoEnTurno(tipo, itemsNuevos, origen) {
   });
 }
 
-// --- ANULACIÓN INDIVIDUAL DE ÍTEMS Y REVERSIÓN DE STOCK Y CAFÉ ---
 window.anularItemMovimiento = function(firebaseKey, itemIndex) {
   const reg = historialMovimientos.find(m => m._firebaseKey === firebaseKey);
   if (!reg) return;
@@ -511,7 +494,6 @@ window.anularItemMovimiento = function(firebaseKey, itemIndex) {
   }
 };
 
-// --- ANULACIÓN COMPLETA DE MOVIMIENTO O TICKET ---
 window.anularMovimientoBitacora = function(firebaseKey, usuarioMovimiento) {
   const reg = historialMovimientos.find(m => m._firebaseKey === firebaseKey);
   if (!reg) return;
@@ -635,12 +617,14 @@ function confirmarTraspasoMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- VENTAS DE BARRA (TUS BOTONES ORIGINALES) ---
+// --- VENTAS DE BARRA (RESTRICCIÓN Y RENDER GARANTIZADO) ---
 function renderBotonesBarra() {
   const grid = document.getElementById('gridBotonesBarra');
   if (!grid) return;
 
   grid.innerHTML = '';
+
+  // Filtra todo lo que no sea insumo de depósito puro
   let productosVisibles = ordenarInventario(inventario.filter(p => p.tipo !== 'insumo'));
 
   if (filtroBusquedaBarra) {
@@ -648,7 +632,7 @@ function renderBotonesBarra() {
   }
 
   if (productosVisibles.length === 0) {
-    grid.innerHTML = `<p class="col-span-full text-xs text-slate-500 italic text-center py-4">No se encontraron productos.</p>`;
+    grid.innerHTML = `<div class="col-span-full text-center py-6 bg-slate-950/40 rounded-xl border border-slate-800"><p class="text-xs text-slate-400 italic">No hay productos de barra disponibles.<br><span class="text-[10px] text-slate-500">Crea productos desde "Nuevo Producto (Admin)" o verifica tu conexión a la base de datos.</span></p></div>`;
     return;
   }
 
@@ -656,11 +640,11 @@ function renderBotonesBarra() {
     const esCafe = prod.tipo === 'cafe';
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2.5 rounded-xl text-left flex flex-col justify-between transition active:scale-95 shadow';
+    btn.className = 'bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3 rounded-xl text-left flex flex-col justify-between transition active:scale-95 shadow cursor-pointer';
     
     let infoStockHtml = esCafe 
-      ? `<span class="text-[10px] text-amber-400 font-semibold">⚡ Café (${prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF}g)</span>` 
-      : `<span class="text-[10px] text-sky-400">Stock: ${prod.stockCafeteria}</span>`;
+      ? `<span class="text-[10px] text-amber-400 font-semibold mt-1 block">⚡ Café (${prod.gramosPorTaza || GRAMOS_POR_CAFE_DEF}g)</span>` 
+      : `<span class="text-[10px] text-sky-400 font-semibold mt-1 block">Stock: ${prod.stockCafeteria}</span>`;
 
     btn.innerHTML = `
       <div>
@@ -983,7 +967,7 @@ function confirmarBajasMultiple() {
   irASeccion('tab-stock');
 }
 
-// --- Insumos ---
+// --- INSUMOS ---
 window.pasarInsumo = function(idInsumo) {
   const prod = inventario.find(p => p.id === idInsumo);
   if (!prod) return;
@@ -1527,6 +1511,9 @@ function iniciarApp() {
     radio.addEventListener('change', (e) => {
       if (e.target.checked && tituloEl && titulosMap[e.target.id]) {
         tituloEl.textContent = titulosMap[e.target.id];
+      }
+      if (e.target.id === 'tab-barra') {
+        renderBotonesBarra();
       }
     });
   });
